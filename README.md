@@ -3,3 +3,6 @@
 本地代码上传存根
 
 pull debug
+
+
+push debug
