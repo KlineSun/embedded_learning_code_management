@@ -156,6 +156,7 @@ int student_info_handler(const char* info, char * result, int len)
             temp = strtok(NULL, ",");
             i++;
         }
+        /* continue to... */
 
         if (i == 1) {
             LOG_DEBUG("Too few parameters in this line: %s", line);
