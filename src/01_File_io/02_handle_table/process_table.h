@@ -2,100 +2,56 @@
 
 #define MAX_BUF_SIZE 2048
 #define LIST_LENGTH(x) (sizeof(x) / sizeof((x)[0]))
+#define null (NULL)
+#define true (TRUE)
+#define false (FALSE)
 
 char *get_time_str();
 #define LOG_DEBUG(format, ...) printf("%s %s() %d: "format"\n", get_time_str(), __func__, __LINE__, ##__VA_ARGS__)
 
-typedef enum {
-    STUDENT = 0,
-    FRUIT
-} table_info_type;
+int student_info_handler(const char *input_file, const char *output_file);
+int fruit_info_handler(const char *input_file, const char *output_file);
 
 typedef struct
 {
-    table_info_type type;
-    int (*info_handle_func)(const char *info, char *result, int len);
+    char *type_name;
+    int (*info_handle_func)(const char *input_file, const char *output_file);
 } info_handle_t;
 
-/*typedef struct {
-    // table info type
-    table_info_type type;
-
-    // parse type of info
-    int (*parse_type)(char *info);
-
-    // handle input information
-    info_handle_t *info_handle;
-} table_parser_t;*/
-
+static info_handle_t g_info_handle_list[] = {
+    {"course_table", student_info_handler},
+    {"sale_table",   fruit_info_handler}
+};
 
 // student type struct begin
 typedef enum {
-    CHINESE = 1,
+    NAME = 0,
+    CHINESE,
     MATH,
-    ENGILISH,
-    PHYSICS,
-    CHEMISTRY,
+    ENGLISH,
+    PHRSICS,
+    CHEMMISTR,
     BIOLOGY,
     POLITICS,
     HISTORY,
-    GEOGRAPHY
-} course_type;
+    GEOGRAPHY,
+    TOTAL,
+    RANK,
+    MARK,
+    INVALID_TYPE = -1
+} data_type_enum;
 
-typedef struct {
-    course_type type;
+// typedef struct course_t course_t;
+typedef struct course_t {
     char name[32];
-    int index;
     float score;
+    struct course_t *next;
 } course_t;
 
 typedef struct {
     int rank;
-    int index;
     const char *comment;
 } mark_t;
-
-typedef struct student_t 
-{
-    char name[32];
-    course_t course;
-    int course_count;
-    float total_score;
-    int rank;
-    mark_t mark;
-    student_t *next;
-} student_t;
-// student type struct end
-
-// fruit type struct begin
-typedef enum {
-    APPLE = 1,
-    BANANAS,
-    PEARS,
-    ORANGES,
-    TANGERINES,
-    WATERMELON,
-    STRAWBERRIES
-} fruit_type;
-
-typedef struct fruit_t
-{
-    fruit_type tpye;
-    char * name
-    float costs;
-    float price;
-    float sales_volume;
-    float total;
-    float margins;
-    fruit_t *next;
-} fruit_t;
-// fruit type struct end
-
-
-static info_handle_t g_info_handle_list[] = {
-    {STUDENT, student_info_handler},
-    {FRUIT,   fruit_info_handler}
-};
 
 static mark_t mark_list[] = {
     {1, "Perfect!"},
@@ -104,3 +60,35 @@ static mark_t mark_list[] = {
     {4, "Keep it up!"},
 };
 
+typedef struct student_t
+{
+    char name[32];
+    course_t *course;
+    int course_count;
+    float total_score;
+    int rank;
+    mark_t mark;
+    struct student_t *next;
+} student_t;
+// student type struct end
+
+// fruit type struct begin
+const char *fruit_type_list[] = {"Apple", "Bananas" , "Pears", "Oranges"
+                                 "Tangerines", "Watermelon" , "Strawberries"};
+
+typedef struct fruit_t
+{
+    char * name;
+    float costs;
+    float price;
+    float sales_volume;
+    float total;
+    float margins;
+    struct fruit_t *next;
+} fruit_t;
+// fruit type struct end
+
+typedef struct {
+    int item_count;
+    char **items;
+} character_array_2d_t;
