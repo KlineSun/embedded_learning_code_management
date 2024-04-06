@@ -1,5 +1,8 @@
-﻿table_type,course_table,,,,,
-Name,Chinese,Math,English,Total,Rank,Mark
-zhangsan,91,81,71,,,
-lisi,81,71,61,,,
-wangwu,71,61,51,,,
+﻿table_type,course_table,,,,,,,
+Name,Chinese,Math,English,Physics,Politics,Total,Rank,Mark
+lisi,81,71,61,89,74,,,
+wangwu,71,61,51,83,88,,,
+zhangsan,91,81,71,81,92,,,
+liumazi,91,80,75,72,91,,,
+sundapao,99,89,90,100,85,,,
+zhouqi,91,87,77,95,79,,,

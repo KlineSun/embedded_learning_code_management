@@ -9,13 +9,14 @@
 char *get_time_str();
 #define LOG_DEBUG(format, ...) printf("%s %s() %d: "format"\n", get_time_str(), __func__, __LINE__, ##__VA_ARGS__)
 
-int student_info_handler(const char *input_file, const char *output_file);
-int fruit_info_handler(const char *input_file, const char *output_file);
+int student_info_handler(const char *input_file);
+int fruit_info_handler(const char *input_file);
+int count_sub_str(const char* str, const char *sub_str);
 
 typedef struct
 {
     char *type_name;
-    int (*info_handle_func)(const char *input_file, const char *output_file);
+    int (*info_handle_func)(const char *input_file);
 } info_handle_t;
 
 static info_handle_t g_info_handle_list[] = {
@@ -50,7 +51,7 @@ typedef struct course_t {
 
 typedef struct {
     int rank;
-    const char *comment;
+    char *comment;
 } mark_t;
 
 static mark_t mark_list[] = {
