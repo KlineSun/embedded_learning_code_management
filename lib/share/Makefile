@@ -7,12 +7,12 @@ LOCAL_C_SRC := $(wildcard *.c) $(wildcard */*.c)
 
 LIB_DEP_OBJECTS := $(addprefix $(LOCAL_DIR)/, $(LOCAL_C_SRC:.c=.o))
 
-LOCAL_TARGET := my_share_lib
+LOCAL_TARGET := my_share_lib.so
 
 $(LOCAL_TARGET): $(LIB_DEP_OBJECTS)
 	@echo "making lib"
-	$(CC) $(CFLAGS) -shared -o $(LOCAL_DIR)/$(LOCAL_TARGET).so $^
-	mv $(LOCAL_DIR)/$(LOCAL_TARGET).so $(LOCAL_DIR)/lib
+	$(CC) $(CFLAGS) -shared -o $(LOCAL_DIR)/$(LOCAL_TARGET) $^
+	mv $(LOCAL_DIR)/$(LOCAL_TARGET) $(LOCAL_DIR)/lib
 
 %.o: %.c
 	@echo "compiling $<"
