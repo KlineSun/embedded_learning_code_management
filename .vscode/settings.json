@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "stdio.h": "c",
+        "a_debug.h": "c",
+        "common_util.h": "c",
+        "types.h": "c",
+        "unistd.h": "c",
+        "key_value_table.h": "c",
+        "string.h": "c",
+        "typeinfo": "c",
+        "frame_buffer.h": "c",
+        "kv_test.h": "c"
+    }
+}

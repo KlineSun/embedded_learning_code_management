@@ -5,8 +5,8 @@ RANLIB := ranlib
 
 export CC AR RANLIB
 
-# 工程根目录
-#MY_PROJECT_ROOT := 
+# 定义arm build的编译变量前缀
+ARM_BUILD_PREFIX := arm-buildroot-linux-gnueabihf-
 
 # 定义工程中用到的公共的静态库、动态库和头文件目录
 COMMON_LIB_PATH	   := $(MY_PROJECT_ROOT)/lib/share/lib $(MY_PROJECT_ROOT)/lib/static/lib

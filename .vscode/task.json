@@ -1,0 +1,20 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "kline_project",
+            "type": "shell",
+            "command": "gcc",
+            "args": [
+                "-I\"E:/GNU_C_LIB/include\"",
+                "-I\"E:/GNU_C_LIB/lib/gcc/x86_64-linux-gnu\"",
+                "-I\"E:/GNU_C_LIB/lib/gcc/x86_64-linux-gnu/7/include\"",
+                "-I\"E:/GNU_C_LIB/lib/gcc/x86_64-linux-gnu/7/include-fixed\""
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
