@@ -27,6 +27,8 @@
 
 
 
+#define LIST_LEN(x) (sizeof(x) / sizeof((x)[0]))
+
 char *get_time_str();
 #define LOG_DEBUG(format, ...) printf("%s %s() %d: "format"\n", get_time_str(), __func__, __LINE__, ##__VA_ARGS__)
 
