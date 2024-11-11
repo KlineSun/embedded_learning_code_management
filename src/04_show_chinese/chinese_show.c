@@ -37,6 +37,10 @@ typedef struct {
     unsigned int color;
 } pixel_t;
 
+
+static unsigned char *g_hzk_mem = NULL;
+static size_t g_hzk_mem_size = 0;
+
 int fb_init(const char *fb_path, fb_t *fb)
 {
     if (fb_path == NULL || fb == NULL) {
@@ -151,6 +155,30 @@ unsigned char *get_ascii_bitmap_8x16(char val)
     return NULL;
 }
 
+unsigned char *get_bitmap_16x16(unsigned char *bitmap_repo, size_t repo_size, unsigned char *code)
+{
+    if (bitmap_repo == NULL || code == NULL) {
+        LOG_DEBUG("Invalid parameter!");
+        return NULL;
+    }
+
+#ifdef HZK16_RESOURCE_SUPPORT
+
+    unsigned long index = ((code[0] - ASCII_RESERVED) * AREA_CHINESE_CNT + (code[1] - ASCII_RESERVED)) * CHINESE_BITMAP_BYTES;
+    LOG_DEBUG("get index: %lu", index);
+
+    if (index >= repo_size) {
+        LOG_DEBUG("index out of the bitmap repository!");
+        return NULL;
+    }
+
+    return &bitmap_repo[index];
+#endif
+
+    return NULL;
+}
+
+
 int draw_ascii(fb_t *fb, point_t *pt, char c, unsigned int color)
 {
     if (pt->x + 8 > fb->sc_var.xres ||  pt->y + 16 > fb->sc_var.yres) {
@@ -167,7 +195,6 @@ int draw_ascii(fb_t *fb, point_t *pt, char c, unsigned int color)
 
     // draw bitmap
     unsigned char _ch = '\0';
-    unsigned int index = 0;
     pixel_t pixel;
     for (int i = 0; i < 16; i++) {
         _ch = *(bitmap + i);
@@ -180,6 +207,44 @@ int draw_ascii(fb_t *fb, point_t *pt, char c, unsigned int color)
                 draw_pixel(fb, &pixel);
             }
         }
+    }
+
+    return 0;
+}
+
+int draw_chinese(fb_t *fb, point_t *pt, unsigned char *code, unsigned int color)
+{
+    if (pt->x + 16 > fb->sc_var.xres ||  pt->y + 16 > fb->sc_var.yres) {
+        LOG_DEBUG("invalid position: (%d, %d), out of the screen!", pt->x, pt->y);
+        return -1;
+    }
+
+    // get bitmap
+    unsigned char *bitmap = get_bitmap_16x16(g_hzk_mem, g_hzk_mem_size, code);
+    if (bitmap == NULL) {
+        LOG_DEBUG("No resource of ascii bitmap here!");
+        return -1;
+    }
+
+    // draw bitmap
+    unsigned char ch[CHINESE_BYTES] = {0};
+    pixel_t pixel;
+    for (int i = 0; i < 16; i++) {
+        ch[0] = *(bitmap + i * 2);
+        ch[1] = *(bitmap + i * 2 + 1);
+        LOG_DEBUG("get value: 0x%02x 0x%02x", ch[0], ch[1]);
+        for (int j = 0; j < 16; j++) {
+            pixel.pt.x = pt->x + j;
+            pixel.pt.y = pt->y + i;
+            pixel.color = color;
+            if (j < 8 && (ch[0] & (0x80 >> j))) {
+                draw_pixel(fb, &pixel);
+            } else if (j >= 8 && (ch[1] & (0x80 >> (j - 8)))) {
+                draw_pixel(fb, &pixel);
+            }
+        }
+
+        memset(ch, 0, CHINESE_BYTES);
     }
 
     return 0;
@@ -200,96 +265,43 @@ int main(int argc, char const *argv[])
     LOG_DEBUG("resolution: %d x %d, bpp: %d", fb.sc_var.xres, fb.sc_var.yres, fb.sc_var.bits_per_pixel);
     LOG_DEBUG("frame buffer size: %ld", (unsigned long)fb.map_size);
 
-    // 绘制ascii码值
-    point_t pt1 = {
-        .x = 200,
-        .y = 100
-    };
-    draw_ascii(&fb, &pt1, 'C', 0xffffff);
+    // open character set
+    if (g_hzk_mem == NULL || g_hzk_mem_size == 0) {
+        g_hzk_mem_size = (unsigned char *)file_mmap(HZK_PATH, -1, PROT_READ, MAP_SHARED, 0, &g_hzk_mem);
+        if (g_hzk_mem_size <= 0 || g_hzk_mem == NULL) {
+            LOG_DEBUG("Map %s failed!", HZK16_PATH);
+            return -1;
+        }
+    }
 
-
-    for (int i = 0; i < LIST_LEN(name_table_gb2312); i++) {
-        if (name_table_gb2312[i] != NULL && strcmp(name_table_gb2312[i], "")) {
-            LOG_DEBUG("name_table_gb2312[%d]: %s", i, name_table_gb2312[i]);
-            char result[512] = {0};
-            for (int j = 0; j < LIST_LEN(name_table_gb2312[i]); j++) {
-                //LOG_DEBUG("name_table_gb2312[%d][%d] hex: %02x", i, j, name_table_gb2312[i][j]);
-                if (j == 0) {
-                    sprintf(result, "%02x", name_table_gb2312[i][j]);
-                } else {
-                    sprintf(result, "%s %02x", result, name_table_gb2312[i][j]);
-                }
+    // try to show gb2313 code
+    if (chinese_str1 != NULL && strcmp(chinese_str1, "")) {
+        LOG_DEBUG("chinese_str1: %s", chinese_str1);
+        char result[512] = {0};
+        for (int j = 0; j < strlen(chinese_str1); j++) {
+            if (j == 0) {
+                sprintf(result, "%02x", chinese_str1[j]);
+            } else {
+                sprintf(result, "%s %02x", result, chinese_str1[j]);
             }
-            LOG_DEBUG("name_table_gb2312[%d] hex: %s", i, result);
+        }
+        LOG_DEBUG("chinese_str1 hex: %s", result);
+
+        for (int j = 0; j < strlen(chinese_str1); j += CHINESE_BYTES) {
+            unsigned char code[CHINESE_BYTES] = {0};
+            code[0] = chinese_str1[j];
+            code[1] = chinese_str1[j + 1];
+            LOG_DEBUG("get code: 0x%02x 0x%02x", code[0], code[1]);
+            
+            point_t pt2 = {
+                .x = 50 + (j + 1) * CHINESE_BITMAP_WIDTH  + CHINESE_WORD_SPACE,
+                .y = 50
+            };
+            LOG_DEBUG("position: (%d, %d)", pt2.x, pt2.y);
+            draw_chinese(&fb, &pt2, code, COLOR_RED);
         }
     }
 
-    for (int i = 0; i < LIST_LEN(name_table_utf8); i++) {
-        if (name_table_utf8[i] != NULL && strcmp(name_table_utf8[i], "")) {
-            LOG_DEBUG("name_table_utf8[%d]: %s", i, name_table_utf8[i]);
-            char result[512] = {0};
-            for (int j = 0; j < LIST_LEN(name_table_utf8[i]); j++) {
-                //LOG_DEBUG("name_table_utf8[%d][%d] hex: %02x", i, j, name_table_utf8[i][j]);
-                if (j == 0) {
-                    sprintf(result, "%02x", name_table_utf8[i][j]);
-                } else {
-                    sprintf(result, "%s %02x", result, name_table_utf8[i][j]);
-                }
-            }
-            LOG_DEBUG("name_table_utf8[%d] hex: %s", i, result);
-        }
-    }
-
-
-    int fd = open("/mnt/name_gb2312.txt", O_RDWR);
-    if (fd <= 0) {
-        LOG_DEBUG("open file failed: %s", strerror(errno));
-        return EXIT_FAILURE;
-    }
-
-    struct stat file_info;
-    
-    ret = fstat(fd, &file_info);
-    if (ret != 0) {
-        LOG_DEBUG("get file state failed: %s", strerror(errno));
-        return EXIT_FAILURE;
-    }
-
-    size_t file_size = file_info.st_size;
-    LOG_DEBUG("get file size: %u", file_size);
-    if (file_size <= 0) {
-        LOG_DEBUG("file size is abnormal!");
-        return EXIT_FAILURE;
-    }
-
-    void *file_ptr = mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (file_ptr == MAP_FAILED) {
-        LOG_DEBUG("get file state failed: %s", strerror(errno));
-        return EXIT_FAILURE;
-    }
-
-    LOG_DEBUG("Map file to address: %p", file_ptr);
-
-    char *p_content = (char *)file_ptr;
-    LOG_DEBUG("Get content: %s", p_content);
-    char print_buf[512] = {0};
-    for (int i = 0; i < file_size && i < sizeof(print_buf); i++) {
-        if (i == 0) {
-            sprintf(print_buf, "%02x", p_content[i]);
-        } else {
-            sprintf(print_buf, "%s %02x", print_buf, p_content[i]);
-        }
-    }
-    LOG_DEBUG("Get content hex: %s", print_buf);
-
-
-    ret = munmap(file_ptr, file_size);
-    if (ret != 0) {
-        LOG_DEBUG("munmap file pointer failed!");
-        return EXIT_FAILURE;
-    }
-
-    close(fd);
     // 反初始化fb
     fb_deinit(&fb);
     return 0;

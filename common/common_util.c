@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/mman.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 char *get_time_str()
 {
@@ -52,3 +56,75 @@ bool is_all_spaces(const char* str)
     return true;
 }
 
+
+/**
+ * @brief mmap a file
+ * 
+ * @param path path of the file
+ * @param size map size, -1 means equal to file size.
+ * @param port map port
+ * @param flag operate options
+ * @param offset map offset
+ * @param ptr map pointer
+ * 
+ * @result return map size if succcess, else return -1.
+*/
+size_t file_mmap(const char *path, size_t size, int port, int flag, off_t offset, void **ptr)
+{
+    if (path == NULL || ptr == NULL || offset < 0) {
+        LOG_DEBUG("Invalid parameter!");
+        return -1;
+    }
+
+    int fd = open(path, O_RDWR);
+    if (fd <= 0) {
+        LOG_DEBUG("open %s failed: %s", path, strerror(errno));
+        return -1;
+    }
+
+    struct stat st;
+    if (fstat(fd, &st) == -1) {
+        LOG_DEBUG("get state of %s failed: %s", path, strerror(errno));
+        goto error_return;
+    }
+    LOG_DEBUG("file size: %ld", st.st_size);
+
+ 
+    size_t map_size = 0;
+    if (size == -1) {
+        map_size = st.st_size;
+    } else if (size < -1 || size > st.st_size || size + offset > st.st_size || size == 0) {
+        LOG_DEBUG("invalid map size");
+        goto error_return;
+    } else if (size > 0) {
+        map_size = size;
+    }
+    
+    void *map_ptr = mmap(NULL, map_size, port, flag, fd, offset);
+    if (map_ptr == MAP_FAILED) {
+        LOG_DEBUG("map %s failed: %s", path, strerror(errno));
+        goto error_return;
+    }
+
+    LOG_DEBUG("map %s success: %p", path, map_ptr);
+    *ptr = map_ptr;
+    if (fd > 0) {
+        close(fd);
+    }
+    return map_size;
+
+error_return:
+    if (fd > 0) {
+        close(fd);
+    }
+    return -1;
+}
+
+
+void str2hex_print(unsigned char *str, size_t length)
+{
+    if (str == NULL || length <= 0) {
+        LOG_DEBUG("map %s success: %p", path, map_ptr);
+        return;
+    }
+}

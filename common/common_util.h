@@ -34,6 +34,7 @@ char *get_time_str();
 
 void trim_string(char *str);
 bool is_all_spaces(const char* str);
+size_t file_mmap(const char *path, size_t size, int port, int flag, off_t offset, void **ptr);
 
 
 #endif // COMMON_UTIL_H

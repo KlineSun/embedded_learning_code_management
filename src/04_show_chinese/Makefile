@@ -25,6 +25,11 @@ ifneq ($(wildcard font_8x16.c),)
     CFLAGS += -DACSII_RESOURCE_SUPPORT
 endif
 
+HZK16_PATH := $(MY_PROJECT_ROOT)/res/HZK16
+ifneq ($(wildcard $(HZK16_PATH)),)
+    CFLAGS += -DHZK16_RESOURCE_SUPPORT
+endif
+
 $(LOCAL_TARGET): $(LOCAL_DEP_OBJECTS)
 	@echo "making $(LOCAL_TARGET)"
 	$(CC) $(CFLAGS) -o $(LOCAL_DIR)/$(LOCAL_TARGET) $^
