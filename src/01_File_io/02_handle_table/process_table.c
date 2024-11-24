@@ -11,16 +11,6 @@
 #include <ctype.h>
 #include "process_table.h"
 
-char *get_time_str() {
-    time_t t = time(NULL);
-    struct tm *tm = localtime(&t);
-    static char time_str[128] = {0};
-
-    sprintf(time_str, "%d-%02d-%02d %02d:%02d:%02d",
-            tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
-    
-    return time_str;
-}
 
 static char g_table_type[64] = {0};
 // g_rows记录输入文件一共有多少行

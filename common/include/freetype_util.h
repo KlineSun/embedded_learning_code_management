@@ -1,0 +1,6 @@
+#ifndef FREETYPE_UTIL_H
+#define FREETYPE_UTIL_H
+
+
+
+#endif //FREETYPE_UTIL_H

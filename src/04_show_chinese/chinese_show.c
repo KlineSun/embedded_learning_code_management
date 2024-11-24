@@ -12,9 +12,10 @@
 #include <errno.h>
 #include "font_8x16.h"
 #include "hzk_code.h"
+#include "fb_util.h"
 
 
-typedef struct {
+/*typedef struct {
     char fb_path[128];
     void *map_ptr;
     size_t map_size;
@@ -36,11 +37,13 @@ typedef struct {
     // format: 0x00RRGGBB
     unsigned int color;
 } pixel_t;
+*/
 
 
 static unsigned char *g_hzk_mem = NULL;
 static size_t g_hzk_mem_size = 0;
 
+/*
 int fb_init(const char *fb_path, fb_t *fb)
 {
     if (fb_path == NULL || fb == NULL) {
@@ -144,6 +147,7 @@ int draw_pixel(fb_t *fb, pixel_t *pp)
     }
     return 0;
 }
+*/
 
 unsigned char *get_ascii_bitmap_8x16(char val)
 {

@@ -8,18 +8,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
-char *get_time_str()
-{
-    time_t t = time(NULL);
-    struct tm *tm = localtime(&t);
-    static char time_str[128] = {0};
-
-    sprintf(time_str, "%d-%02d-%02d %02d:%02d:%02d",
-            tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
-    
-    return time_str;
-}
 
 void trim_string(char *str)
 {
@@ -121,10 +111,30 @@ error_return:
 }
 
 
-void str2hex_print(unsigned char *str, size_t length)
+void str2hex_print(void *ptr, size_t bytes)
 {
-    if (str == NULL || length <= 0) {
-        LOG_DEBUG("map %s success: %p", path, map_ptr);
+    if (ptr == NULL || bytes <= 0) {
+        LOG_DEBUG("invalid parameter");
         return;
+    }
+
+    // format: value ==> <%02x><space><%02x><space>...
+    unsigned char *print_buf = malloc(bytes * 3 + 1);
+    if (print_buf == NULL) {
+        LOG_DEBUG("malloc failed!");
+        return;
+    }
+
+    unsigned char *temp = (unsigned char *)ptr;
+    for (int i = 0; i < bytes; i++) {
+        if (i == 0)
+            sprintf(print_buf, "%02x", temp[i]);
+        else
+            sprintf(print_buf, "%s %02x", print_buf, temp[i]);
+    }
+    LOG_DEBUG("hex value: %s", print_buf);
+
+    if (print_buf != NULL) {
+        free(print_buf);
     }
 }

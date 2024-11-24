@@ -1,13 +1,11 @@
 #include <stdio.h>
+#include "common_util.h"
 
 #define MAX_BUF_SIZE 2048
 #define LIST_LENGTH(x) (sizeof(x) / sizeof((x)[0]))
 #define null (NULL)
 #define true (TRUE)
 #define false (FALSE)
-
-char *get_time_str();
-#define LOG_DEBUG(format, ...) printf("%s %s() %d: "format"\n", get_time_str(), __func__, __LINE__, ##__VA_ARGS__)
 
 int student_info_handler(const char *input_file);
 int fruit_info_handler(const char *input_file);
