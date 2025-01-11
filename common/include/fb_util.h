@@ -34,6 +34,8 @@ typedef struct {
     int width;
     int height;
     int ln_bys;
+    int advance_x;
+    int advance_y;
     unsigned char *buf;
 } bitmap_t;
 

@@ -10,7 +10,7 @@ LOCAL_DEP_OBJECTS := $(addprefix $(LOCAL_DIR)/, $(LOCAL_C_SRC:.c=.o))
 LOCAL_C_SRC += $(COMMON_SRC_FILES)
 LOCAL_DEP_OBJECTS += $(COMMON_DEP_OBJS)
 
-CFLAGS += -lfreetype
+CFLAGS += -lfreetype -lm
 LOCAL_TARGET := freetype_tst
 LOCAL_BUILD_TYPE := ARM_BUILD
 

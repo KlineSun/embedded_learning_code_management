@@ -8,13 +8,17 @@
 
 //=====================type define begin=====================
 #define COLOR_T int
+#define angle_t double
 typedef unsigned char u_8bit_t;
 //=====================type define end=======================
 
 
 //=====================number define begin===================
+#define EXCUTE_SUCCESS_EXIT 0 
+#define EXCUTE_FAILED_EXIT -1
 #define CHINESE_BYTES (2)
 #define MAX_FILE_LINE_LENTH 2048
+#define PI (3.1415)
 
 
 //color
@@ -22,6 +26,7 @@ typedef unsigned char u_8bit_t;
 #define RGB_COLOR_RED (0xff0000)
 #define RGB_COLOR_GREEN (0x00ff00)
 #define RGB_COLOR_VLUE (0x0000ff)
+#define RGB_COLOR_BLACK (0x000000)
 //=====================number define end=====================
 
 
@@ -53,6 +58,8 @@ typedef unsigned char u_8bit_t;
     }
 
 #define LIST_LEN(x) (sizeof(x) / sizeof((x)[0]))
+
+#define ANGLE(x) (angle_t)((x / 360) * PI * 2)
 
 
 void trim_string(char *str);

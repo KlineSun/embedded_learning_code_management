@@ -138,7 +138,7 @@ int draw_bitmap(fb_t *fb, bitmap_t *b_map, point_t *pp, COLOR_T color)
             // pos y
             pen.y = pp->y + j;
             if (pen.x > fb->sc_var.xres || pen.y > fb->sc_var.yres) {
-                LOG_DEBUG("pixel position out of the range!");
+                //LOG_DEBUG("pixel position out of the range!");
                 continue;
             }
 
