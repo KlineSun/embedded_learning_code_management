@@ -7,6 +7,10 @@
 #include "common_util.h"
 #include <linux/fb.h>
 
+#define FONT_PAGE_MARGIN_X 20
+#define FONT_PAGE_MARGIN_Y 15
+#define FONT_LINE_MARGIN   20
+
 typedef struct {
     char fb_path[128];
     void *map_ptr;
@@ -30,14 +34,17 @@ typedef struct {
     unsigned int color;
 } pixel_t;
 
-typedef struct {
-    int width;
-    int height;
-    int ln_bys;
-    int advance_x;
-    int advance_y;
-    unsigned char *buf;
-} bitmap_t;
+  typedef struct
+  {
+    unsigned int    rows;
+    unsigned int    width;
+    int             pitch;
+    unsigned char*  buffer;
+    unsigned short  num_grays;
+    unsigned char   pixel_mode;
+    unsigned char   palette_mode;
+    void*           palette;
+  }  bitmap_t;
 
 int fb_init(const char *fb_path, fb_t *fb);
 void fb_deinit(fb_t *fb);

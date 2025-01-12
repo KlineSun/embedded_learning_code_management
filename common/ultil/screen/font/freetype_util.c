@@ -44,46 +44,28 @@ int freetype_init(int font_size)
     return FT_NO_ERR;
 }
 
-int get_freetype_bitmap(ft_code_t code, bitmap_t *bp)
+int get_freetype_bitmap(FT_Face face, ft_code_t code, bitmap_t *bp)
 {
-    if (bp == NULL) {
+    if (bp == NULL || face == NULL || !code) {
         LOG_DEBUG("Invalid arguments!");
         return FT_INVALID_ARGUMENT;
     }
 
-    if (!g_init_flag || g_ft_lib == NULL || g_ft_face == NULL) {
-        LOG_DEBUG("Freetype not initialized yet!");
-        return FT_USE_WITHOUT_INIT;
-    }
-    if (!code)
-        LOG_DEBUG("null code enter!");
-
-    int err = FT_Load_Char(g_ft_face, code, FT_LOAD_RENDER);
+    int err = FT_Load_Char(face, code, FT_LOAD_RENDER);
     if (err != 0) {
         LOG_DEBUG("load char failed!");
         return FT_LOAD_CHAR_ERR;
     }
 
-    if (!code)
-        LOG_DEBUG("null code FT_Load_Char!");
-
-    FT_GlyphSlot ft_slot = g_ft_face->glyph;
+    FT_GlyphSlot ft_slot = face->glyph;
     if (ft_slot == NULL) {
         LOG_DEBUG("get freetype slot failed!");
         return FT_GET_SLOT_ERR;
     }
 
-    bp->width = ft_slot->bitmap.width;
-    bp->height = ft_slot->bitmap.rows;
-    bp->ln_bys = ft_slot->bitmap.pitch;
-    bp->advance_x = ft_slot->advance.x;
-    bp->advance_y = ft_slot->advance.y;
-    bp->buf = ft_slot->bitmap.buffer;
-    LOG_DEBUG("bitmap.width = %d, bitmap.rows = %d, ad_x = %d, ad_y = %d", ft_slot->bitmap.width, ft_slot->bitmap.rows,
-                            ft_slot->advance.x, ft_slot->advance.y);
-
-    if (!code)
-        LOG_DEBUG("null code return bitmap buf: %p", bp->buf);
+    memcpy(bp, &ft_slot->bitmap, sizeof(bitmap_t));
+    // LOG_DEBUG("bitmap.width = %d, bitmap.rows = %d, ad_x = %d, ad_y = %d", ft_slot->bitmap.width, ft_slot->bitmap.rows,
+    //                         ft_slot->advance.x, ft_slot->advance.y);
 
     return FT_NO_ERR;
 }

@@ -17,7 +17,7 @@
 typedef unsigned int ft_code_t;
 
 int freetype_init(int font_size);
-int get_freetype_bitmap(ft_code_t code, bitmap_t *bp);
+int get_freetype_bitmap(FT_Face face, ft_code_t code, bitmap_t *bp);
 int ft_rotate_transfer(float rota_angle, point_t *pp);
 
 #endif //FREETYPE_UTIL_H

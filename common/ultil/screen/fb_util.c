@@ -123,10 +123,11 @@ int draw_bitmap(fb_t *fb, bitmap_t *b_map, point_t *pp, COLOR_T color)
     }
 
     int x_max = pp->x + b_map->width;
-    int y_max = pp->y + b_map->height;
+    int y_max = pp->y + b_map->rows;
 
-    LOG_DEBUG("x range: (%d, %d)", pp->x, x_max);
-    LOG_DEBUG("y range: (%d, %d)", pp->y, y_max);
+    // LOG_DEBUG("x range: (%d, %d)", pp->x, x_max);
+    // LOG_DEBUG("y range: (%d, %d)", pp->y, y_max);
+    // LOG_DEBUG("pitch: %d", b_map->pitch);
 
     // One byte corresponds to one pixel
     point_t pen;
@@ -134,7 +135,7 @@ int draw_bitmap(fb_t *fb, bitmap_t *b_map, point_t *pp, COLOR_T color)
     for (int i = 0; i < b_map->width; i++) {
         // pos x
         pen.x = pp->x + i;
-        for (int j = 0; j < b_map->height; j++) {
+        for (int j = 0; j < b_map->rows; j++) {
             // pos y
             pen.y = pp->y + j;
             if (pen.x > fb->sc_var.xres || pen.y > fb->sc_var.yres) {
@@ -142,8 +143,8 @@ int draw_bitmap(fb_t *fb, bitmap_t *b_map, point_t *pp, COLOR_T color)
                 continue;
             }
 
-            offset = j * b_map->ln_bys + i;
-            if (b_map->buf[offset] != 0) {
+            offset = j * b_map->pitch + i;
+            if (b_map->buffer[offset] != 0) {
                 draw_pixel(fb, &pen, color);
             }
         }
