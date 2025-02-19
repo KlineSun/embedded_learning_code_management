@@ -11,6 +11,7 @@
 #include <errno.h>
 #include "input_tst.h"
 #include <linux/input.h>
+#include <sys/types.h>
 
 
 const char* event_bit_names[] = {
@@ -102,6 +103,34 @@ int main(int argc, char const *argv[])
             }
         }
     }
+
+    struct input_event event;
+    ret = read(fd, &event, sizeof(struct input_event));
+    if (ret != sizeof(struct input_event)) {
+        LOG_DEBUG("read dev %s failed!", INPUT_EVENT0_PATH);
+        close(fd);
+        return EXCUTE_FAILED_EXIT;
+    }
+
+    LOG_DEBUG("event type: %hu", event.type);
+    LOG_DEBUG("event code: %hu", event.code);
+    LOG_DEBUG("event value: %d", event.value);
+
     close(fd);
+
+    LOG_DEBUG("start operate %s", INPUT_EVENT1_PATH);
+    int fd1 = open(INPUT_EVENT1_PATH, O_RDWR | O_NONBLOCK);
+    if (fd1 <= 0) {
+        LOG_DEBUG("open dev %s failed!", INPUT_EVENT1_PATH);
+        return EXCUTE_FAILED_EXIT;
+    }
+
+    struct input_event _event;
+    while (read(fd1, &_event, sizeof(struct input_event)) != sizeof(struct input_event)) {
+
+        LOG_DEBUG("dev %s don't have event, waitting...", INPUT_EVENT1_PATH);
+        sleep(1);
+    }
+    close(fd1);
     return EXCUTE_SUCCESS_EXIT;
 }
