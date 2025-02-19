@@ -12,7 +12,7 @@
 #include "input_tst.h"
 #include <linux/input.h>
 #include <sys/types.h>
-
+#include <poll.h>
 
 const char* event_bit_names[] = {
     "EV_SYN		",
@@ -104,21 +104,36 @@ int main(int argc, char const *argv[])
         }
     }
 
-    struct input_event event;
-    ret = read(fd, &event, sizeof(struct input_event));
-    if (ret != sizeof(struct input_event)) {
-        LOG_DEBUG("read dev %s failed!", INPUT_EVENT0_PATH);
+    // poll wait
+    struct pollfd fds[MAX_INPUT_POLL_EVENT_NUM] = {0};
+    for (int i = 0; i < MAX_INPUT_POLL_EVENT_NUM; i++) {
+        fds[i].fd = fd;
+        fds[i].events = POLLIN;
+    }
+    int event_cnt = poll(fds, MAX_INPUT_POLL_EVENT_NUM, 5000);
+    if (event_cnt <= 0) {
+        LOG_DEBUG("poll dev %s failed!", INPUT_EVENT0_PATH);
         close(fd);
         return EXCUTE_FAILED_EXIT;
     }
+    LOG_DEBUG("poll dev %s success, event count: %d", INPUT_EVENT0_PATH, event_cnt);
 
-    LOG_DEBUG("event type: %hu", event.type);
-    LOG_DEBUG("event code: %hu", event.code);
-    LOG_DEBUG("event value: %d", event.value);
+    for (int i = 0; i < event_cnt; i++) {
+        struct input_event event;
+        ret = read(fd, &event, sizeof(struct input_event));
+        if (ret != sizeof(struct input_event)) {
+            LOG_DEBUG("read dev %s failed!", INPUT_EVENT0_PATH);
+            close(fd);
+            return EXCUTE_FAILED_EXIT;
+        }
 
+        LOG_DEBUG("event%d type: %hu", i, event.type);
+        LOG_DEBUG("event%d code: %hu", i, event.code);
+        LOG_DEBUG("event%d value: %d", i, event.value);
+    }
     close(fd);
 
-    LOG_DEBUG("start operate %s", INPUT_EVENT1_PATH);
+    /* LOG_DEBUG("start operate %s", INPUT_EVENT1_PATH);
     int fd1 = open(INPUT_EVENT1_PATH, O_RDWR | O_NONBLOCK);
     if (fd1 <= 0) {
         LOG_DEBUG("open dev %s failed!", INPUT_EVENT1_PATH);
@@ -131,6 +146,6 @@ int main(int argc, char const *argv[])
         LOG_DEBUG("dev %s don't have event, waitting...", INPUT_EVENT1_PATH);
         sleep(1);
     }
-    close(fd1);
+    close(fd1);*/
     return EXCUTE_SUCCESS_EXIT;
 }
