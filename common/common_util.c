@@ -127,10 +127,11 @@ void str2hex_print(void *ptr, size_t bytes)
 
     unsigned char *temp = (unsigned char *)ptr;
     for (int i = 0; i < bytes; i++) {
-        if (i == 0)
+        sprintf(print_buf + strlen(print_buf), "%02x ", temp[i]);
+        /*if (i == 0)
             sprintf(print_buf, "%02x", temp[i]);
         else
-            sprintf(print_buf, "%s %02x", print_buf, temp[i]);
+            sprintf(print_buf, "%s %02x", print_buf, temp[i]);*/
     }
     LOG_DEBUG("hex value: %s", print_buf);
 

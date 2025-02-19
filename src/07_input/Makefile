@@ -10,15 +10,8 @@ LOCAL_DEP_OBJECTS := $(addprefix $(LOCAL_DIR)/, $(LOCAL_C_SRC:.c=.o))
 LOCAL_C_SRC += $(COMMON_SRC_FILES)
 LOCAL_DEP_OBJECTS += $(COMMON_DEP_OBJS)
 
-# add util/screen
-UTIL_SCREEN_INC_PATH := $(shell find $(UTIL_SCREEN_PATH) -type d)
-UTIL_SCREEN_SRC_PATH := $(shell find "$(UTIL_SCREEN_PATH)" -type f \( -name "*.c" -o -name "*.cpp" \))
-CFLAGS += $(foreach dir, $(UTIL_SCREEN_INC_PATH), -I $(dir))
-LOCAL_C_SRC += $(UTIL_SCREEN_SRC_PATH)
-LOCAL_DEP_OBJECTS += $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(UTIL_SCREEN_SRC_PATH)))
-
-CFLAGS += -lfreetype -lm
-LOCAL_TARGET := freetype_tst_vec
+# CFLAGS += -lfreetype -lm
+LOCAL_TARGET := input_tst
 LOCAL_BUILD_TYPE := ARM_BUILD
 
 ifeq ($(LOCAL_BUILD_TYPE), ARM_BUILD)
@@ -31,7 +24,6 @@ $(LOCAL_TARGET): $(LOCAL_DEP_OBJECTS)
 	@echo "include common source files: $(COMMON_SRC_FILES)"
 	@echo "depends: $(LOCAL_DEP_OBJECTS)"
 	@echo "making $(LOCAL_TARGET)"
-	@echo "match obj file: $(LOCAL_DEP_OBJECTS)"
 	$(CC) $(CFLAGS) -o $(LOCAL_DIR)/$(LOCAL_TARGET) $^
 
 %.o: %.c $(PRE_BUILD_TARGET)
