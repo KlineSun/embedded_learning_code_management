@@ -119,15 +119,15 @@ void str2hex_print(void *ptr, size_t bytes)
     }
 
     // format: value ==> <%02x><space><%02x><space>...
-    unsigned char *print_buf = malloc(bytes * 3 + 1);
+    char *print_buf = malloc(bytes * 3 + 1);
     if (print_buf == NULL) {
         LOG_DEBUG("malloc failed!");
         return;
     }
 
-    unsigned char *temp = (unsigned char *)ptr;
+    char *temp = (char *)ptr;
     for (int i = 0; i < bytes; i++) {
-        sprintf(print_buf + strlen(print_buf), "%02x ", temp[i]);
+        sprintf(print_buf + strlen((const char *)print_buf), "%02x ", temp[i]);
         /*if (i == 0)
             sprintf(print_buf, "%02x", temp[i]);
         else
