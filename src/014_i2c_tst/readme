@@ -1,0 +1,45 @@
+用法：
+i2c_tst路径 <i2c_controller_num> <dev_addr> <daddr> <direction> <mode> <byte_cnt> [input_dataue/string]
+- i2c_controller_num：表示i2c控制器(对应内核中的一个i2c_adapter)的编号，因为一个soc可能拥有多个控制器，需要指定使用哪个控制器
+- dev_addr：表示当前i2c控制器下挂的i2c设备(对应内核中的一个i2c_client)的地址，例如：eeprom、als等设备，地址例如为0x50、0x1e；
+- daddr：表示要操作设备的寄存器地址，例如eeprom中的地址；
+- direction：表示要进行的写操作还是读操作；
+- mode：支持以下模式：
+	* write fromat:
+	*      i2c_tst <num> <addr> <daddr> <W> quick n <flag 1> <flag 2> ... <flag n>
+	*      i2c_tst <num> <addr> <daddr> <W> byte n <byte 1> <byte 2> ... <byte n>
+	*      i2c_tst <num> <addr> <daddr> <W> byte_data n <byte 1> <byte 2> ... <byte n>
+	*      i2c_tst <num> <addr> <daddr> <W> word 2n <word 1 low> <word 1 high> ... <word n low> <word n high>
+	*      i2c_tst <num> <addr> <daddr> <W> block n <byte 1> <byte 2> ... <byte n>
+	*      or
+	*      i2c_tst <num> <addr> <daddr> <W> block strlen(str) <str@abcd...>
+
+	* read format:
+	*      i2c_tst <num> <addr> <daddr> <R> byte n
+	*      i2c_tst <num> <addr> <daddr> <R> byte_data n
+	*      i2c_tst <num> <addr> <daddr> <R> word n
+	*      i2c_tst <num> <addr> <daddr> <R> block n
+	*      or
+	*      i2c_tst <num> <addr> <daddr> <R> block n str@
+- byte_cnt：要写入/读取的字节数
+- input_dataue/string：写操作时，需要输入的数据，可以选择以字节数组的形式输入，或者以字符串的形式输入
+
+
+示例：
+	* hex write: ./i2c_tst 1 0x50 0x80 w byte_data 4 0x09 0x0a 0x0b 0xc
+	* hex read:  ./i2c_tst 1 0x50 0x80 r byte_data 4
+	* 
+	* byte write: ./i2c_tst 0 0x1e 0    w byte 1 0x04
+	* byte write: ./i2c_tst 0 0x1e 0    w byte 1 0x03
+	* word read:  ./i2c_tst 0 0x1e 0x0c r word 2
+	* word read:  ./i2c_tst 0 0x1e 0x0e r word 2
+	* 
+	* block write: ./i2c_tst 1 0x50 0 w block 6 0x09 0x0a 0x0b 0xc 0xd 0xe
+	* block read:  ./i2c_tst 1 0x50 0 r block 6
+	* 
+	* string write: ./i2c_tst 1 0x50 0 w block 14 str@www.baidu.com
+	* string write: ./i2c_tst 1 0x50 0 r block 14 str@
+	* 
+	* byte_data write: ./i2c_tst 1 0x50 0 w byte_data 13 0x77 0x77 0x77 0x2e 0x62 0x61 0x69 0x64 0x75 0x2e 0x63 0x6f 0x6d
+	* byte_data write: ./i2c_tst 1 0x50 0 r byte_data 14 str@
+

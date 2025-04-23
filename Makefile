@@ -13,8 +13,8 @@ COMMON_LIB_PATH	   := $(MY_PROJECT_ROOT)/lib/share/lib $(MY_PROJECT_ROOT)/lib/st
 COMMON_INCLUE_PATH := $(MY_PROJECT_ROOT)/inc $(MY_PROJECT_ROOT)/common/include
 
 # 工具路径，及其下的子模块
-UTIL_ROOT_PATH	   	   	:= $(MY_PROJECT_ROOT)/util
-UTIL_SCREEN_PATH   	:= $(UTIL_ROOT_PATH)/screen
+UTILS_ROOT_PATH		:= $(MY_PROJECT_ROOT)/utils
+UTIL_SCREEN_PATH   	:= $(UTILS_ROOT_PATH)/screen
 
 # 编译标志
 CFLAGS := -Wall -O2 -g
