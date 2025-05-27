@@ -7,13 +7,14 @@
 #include <stdlib.h>
 
 #define MAX_RECV_BUF_SIZE (512)
+#define MIN(a,b) (a < b ? a : b)
 
 typedef enum {
     APP_PATH_IDX=0,
     DEV_PATH_IDX,
     OPERATION_IDX,
     DATA_SIZE_IDX,
-    DATA_TYPE_IDX,
+    DATA_FORMAT_IDX,
     INPUT_DATA_IDX,
 } option_index_t;
 
@@ -42,31 +43,183 @@ typedef enum {
     INPUT_FLOAT_TYPE,
 } input_type_t;
 
+typedef union {
+    char c;
+    int i;
+    float f;
+    long l;
+    double d;
+} single_data_type;
+
 int g_target_fd = -1;
+
+int check_data_format(const char *fmt)
+{
+    if (!fmt) {
+        LOG_DEBUG("Invalid parameter!");
+        return -1;
+    }
+
+    if (!strcmp(fmt, "%s")) {
+         return sizeof(char);
+    } else if (!strcmp(fmt, "%d")) {
+        return sizeof(int);
+    } else if (!strcmp(fmt, "%ld")) {
+        return sizeof(long);
+    } else if (!strcmp(fmt, "%f")) {
+        return sizeof(float);
+    } else if (!strcmp(fmt, "%lf")) {
+        return sizeof(double);
+    } else if (!strcmp(fmt, "%c")) {
+        return sizeof(char);
+    } else {
+        LOG_DEBUG("Unsupport data format!");
+        return -1;
+    }
+}
+
+void buf_print(void *buf, const char *fmt, size_t size)
+{
+    int type_size = 0, i = 0;
+    if (!buf || !fmt) {
+        LOG_DEBUG("Invalid parameter!");
+        return;
+    }
+
+    type_size = check_data_format(fmt);
+    if (type_size <= 0) {
+        LOG_DEBUG("invalid data format: %s", fmt);
+        return;
+    }
+
+    for (i = 0; i < size; i++) {
+        if (i == 0) {
+            printf("DATA: ");
+        } else {
+            printf(",");
+        }
+
+        if (!strcmp(fmt, "%s")) {
+            printf("%s", (char *)buf);
+            return;
+        } else if (!strcmp(fmt, "%d")) {
+            printf("%d", *((int *)buf));
+            buf += type_size;
+        } else if (!strcmp(fmt, "%ld")) {
+            printf("%ld", *((long *)buf));
+            buf += type_size;
+        } else if (!strcmp(fmt, "%f")) {
+            printf("%0.2f", *((float *)buf));
+            buf += type_size;
+        } else if (!strcmp(fmt, "%lf")) {
+            printf("%0.4lf", *((double *)buf));
+            buf += type_size;
+        } else if (!strcmp(fmt, "%c")) {
+            printf("%c", *((char *)buf));
+            buf += type_size;
+        } else {
+            LOG_DEBUG("Unsupport data format: %s", fmt);
+            return;
+        }
+    }
+    printf("\n");
+}
+
+int type_cycle_sscanf(const char* src, void *dest, const char* fmt, size_t cycle_time)
+{
+    // 定义变量，用于存储类型大小、解析的字符数和循环次数
+    int type_size = 0, n_parsed = 0, i = 0;
+    const char *tmp = src;
+    // 判断参数是否有效
+    if (!src || !fmt || !dest) {
+        LOG_DEBUG("Invalid parameter!");
+        return -1;
+    }
+
+    // 获取数据格式的大小
+    type_size = check_data_format(fmt);
+    // 判断数据格式是否有效
+    if (type_size <= 0 || type_size * cycle_time > MAX_RECV_BUF_SIZE) {
+        LOG_DEBUG("invalid data format: %s", fmt);
+        return -1;
+    }
+
+    // 循环解析数据
+    for (i = 0; i < cycle_time; i++) {
+        single_data_type data = {0};
+        // 使用sscanf函数解析数据
+        if (!strcmp(fmt, "%s")) {
+            memcpy(dest, tmp, strlen(tmp));
+            LOG_DEBUG("get string: %s", (char *)dest);
+            break;
+        } else if (!strcmp(fmt, "%d")) {
+            if (i == 0) {
+                if (sscanf(tmp, "%d%n", &data.i, &n_parsed) < 1) return -1;
+            } else {
+                if (sscanf(tmp, ",%d%n", &data.i, &n_parsed) < 1) return -1;
+            }
+            memcpy(dest + i*type_size, &data.i, type_size);
+        } else if (!strcmp(fmt, "%ld")) {
+            if (i == 0) {
+                if (sscanf(tmp, "%ld%n", &data.l, &n_parsed) < 1) return -1;
+            } else {
+                if (sscanf(tmp, ",%ld%n", &data.l, &n_parsed) < 1) return -1;
+            }
+            memcpy(dest + i*type_size, &data.l, type_size);
+        } else if (!strcmp(fmt, "%f")) {
+            if (i == 0) {
+                if (sscanf(tmp, "%f%n", &data.f, &n_parsed) < 1) return -1;
+            } else {
+                if (sscanf(tmp, ",%f%n", &data.f, &n_parsed) < 1) return -1;
+            }
+            memcpy(dest + i*type_size, &data.f, type_size);
+        } else if (!strcmp(fmt, "%lf")) {
+            if (i == 0) {
+                if (sscanf(tmp, "%lf%n", &data.d, &n_parsed) < 1) return -1;
+            } else {
+                if (sscanf(tmp, ",%lf%n", &data.d, &n_parsed) < 1) return -1;
+            }
+            memcpy(dest + i*type_size, &data.d, type_size);
+        } else if (!strcmp(fmt, "%c")) {
+            if (i == 0) {
+                if (sscanf(tmp, "%c%n", &data.c, &n_parsed) < 1) return -1;
+            } else {
+                if (sscanf(tmp, ",%c%n", &data.c, &n_parsed) < 1) return -1;
+            }
+            memcpy(dest + i*type_size, &data.c, type_size);
+        } else {
+            LOG_DEBUG("Unsupport data format: %s", fmt);
+            return -1;
+        }
+        tmp += n_parsed;
+    }
+
+    buf_print(dest, fmt, cycle_time);
+    return 0;
+}
 
 int main(int argc, const char **argv)
 {
     LOG_DEBUG("Enter main: %d", argc);
 
-    int oprt = 0, err = 0, data_size = 0, input_type = 0, write_size = 0;
-    char recv_buf[MAX_RECV_BUF_SIZE] = {0};
-    char input_str[MAX_RECV_BUF_SIZE] = {0};
-    int input_int[MAX_RECV_BUF_SIZE] = {0};
-    float input_float[MAX_RECV_BUF_SIZE] = {0};
-    void *write_buf = NULL;
-    
+    int oprt = 0, err = 0, data_size = 0;
+    int type_size = 0;
+    char data_buf[MAX_RECV_BUF_SIZE] = {0};
+
     /**
      * exp: 
      *  ./common_drv_tst /dev/hello_drv -w 13 -str www.baidu.com
      *  ./common_drv_tst /dev/hello_drv -w 2 -int 1 2
      *  ./common_drv_tst /dev/hello_drv -w 2 -float 1.1 2.2
-     *  ./common_drv_tst /dev/hello_drv -r
+     *  ./common_drv_tst /dev/hello_drv -r 2
      * 
      *  ./common_drv_tst /dev/led_simple_drv -w 1 -int 1
     */
     if (argc < 3) {
-        LOG_DEBUG("Usage: ./common_drv_tst <dev_path> <operation> <data_size> <data_type> [input_data]");
+        LOG_DEBUG("Usage: ./common_drv_tst <dev_path> <operation> <data_size> <data_format> [input_data]");
         LOG_DEBUG("operation:\n-w: write\n-r: read\n-ioctrl: ioctrl\n-p: poll");
+        LOG_DEBUG("data_format:\n%%d: int\n%%f: float\n%%ld: long\n%%lf: double\n%%s: string");
+        LOG_DEBUG("Input_format:\ndata1,data2,data3,...");
         return OPTR_INIT_ERR;
     }
 
@@ -88,51 +241,31 @@ int main(int argc, const char **argv)
         return OPTR_UNKNOWN;
     }
 
+    // get data size
+    data_size = atoi(argv[DATA_SIZE_IDX]);
+    if (data_size <= 0 || data_size > MAX_RECV_BUF_SIZE) {
+        LOG_DEBUG("invalid data_size: %s", argv[DATA_SIZE_IDX]);
+        return OPTR_UNKNOWN;
+    }
+
+    // check and calculate format size
+    type_size = check_data_format(argv[DATA_FORMAT_IDX]);
+    if (type_size <= 0 || type_size * data_size > MAX_RECV_BUF_SIZE) {
+        LOG_DEBUG("invalid data format: %s", argv[DATA_FORMAT_IDX]);
+        return OPTR_UNKNOWN;
+    }
+
+    LOG_DEBUG("format=%s, type_size=%d, data_size=%d", argv[DATA_FORMAT_IDX], type_size, data_size);
+
+    // get input data from cmdline
     if (oprt == OPERATION_WRITE || oprt == OPERATION_IOCTRL) {
-        data_size = atoi(argv[DATA_SIZE_IDX]);
-        if (data_size <= 0 || data_size > MAX_RECV_BUF_SIZE) {
-            LOG_DEBUG("invalid data_size: %s", argv[DATA_SIZE_IDX]);
+        if (type_cycle_sscanf(argv[INPUT_DATA_IDX], data_buf, argv[DATA_FORMAT_IDX], data_size)) {
+            LOG_DEBUG("sscanf input string failed: %s", argv[DATA_FORMAT_IDX]);
             return OPTR_UNKNOWN;
-        }
-
-        if (!strcmp(argv[DATA_TYPE_IDX], "-int")) {
-            input_type = INPUT_INT_TYPE;
-            write_buf = input_int;
-            write_size = data_size * sizeof(int);
-        } else if (!strcmp(argv[DATA_TYPE_IDX], "-str")) {
-            input_type = INPUT_STRING_TYPE;
-            write_buf = input_str;
-            write_size = data_size * sizeof(char);
-        } else if (!strcmp(argv[DATA_TYPE_IDX], "-float")) {
-            input_type = INPUT_FLOAT_TYPE;
-            write_buf = input_float;
-            write_size = data_size * sizeof(float);
-        } else {
-            LOG_DEBUG("unsupport data type: %s", argv[DATA_TYPE_IDX]);
-            return OPTR_UNKNOWN;
-        }
-    
-        for (int i = 0; i < data_size; i++) {
-            if (input_type == INPUT_INT_TYPE) {
-                input_int[i] = atoi(argv[INPUT_DATA_IDX + i]);
-                LOG_DEBUG("get int: %d", input_int[i]);
-            } else if (input_type == INPUT_FLOAT_TYPE) {
-                input_float[i] = atof(argv[INPUT_DATA_IDX + i]);
-                LOG_DEBUG("get float: %f", input_float[i]);
-            } else if (input_type == INPUT_STRING_TYPE) {
-                input_str[i] = argv[INPUT_DATA_IDX][i];
-            } else {
-                LOG_DEBUG("unsupport data type: %s", argv[DATA_TYPE_IDX]);
-                return OPTR_UNKNOWN;
-            }
-        }
-
-        if (input_type == INPUT_STRING_TYPE) {
-            LOG_DEBUG("get string: %s", input_str);
         }
     }
 
-
+    // open
     int g_target_fd = open(argv[DEV_PATH_IDX], O_RDWR);
     if (g_target_fd < 0) {
         LOG_DEBUG("open dev %s failed: %s", argv[DEV_PATH_IDX], strerror(errno));
@@ -140,20 +273,22 @@ int main(int argc, const char **argv)
         goto res_free;
     }
 
+    // operate
     if (oprt == OPERATION_WRITE) {
-        if (write(g_target_fd, write_buf, write_size) < 0) {
+        if (write(g_target_fd, data_buf, type_size * data_size) < 0) {
             LOG_DEBUG("write data to dev %s failed: %s", argv[DEV_PATH_IDX], strerror(errno));
             err = OPTR_WRITE_ERR;
             goto res_free;
         }
         LOG_DEBUG("write data to device success!");
     } else if (oprt == OPERATION_READ) {
-        if (read(g_target_fd, recv_buf, MAX_RECV_BUF_SIZE) < 0) {
+        if (read(g_target_fd, data_buf, MIN(MAX_RECV_BUF_SIZE, data_size * type_size)) < 0) {
             LOG_DEBUG("read data from dev %s failed: %s", argv[DEV_PATH_IDX], strerror(errno));
             err = OPTR_READ_ERR;
             goto res_free;
         }
-        LOG_DEBUG("read data from driver success: %s", recv_buf);
+        LOG_DEBUG("read data from driver success: %s", data_buf);
+        buf_print(data_buf, argv[DATA_FORMAT_IDX], data_size);
     } else if (oprt == OPERATION_IOCTRL) {
 
     } else if (oprt == OPERATION_POLL) {
