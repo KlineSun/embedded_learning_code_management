@@ -5,10 +5,11 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <poll.h>
 
-#define MAX_RECV_BUF_SIZE (512)
+#define MAX_RECV_BUF_SIZE (1024)
 #define MIN(a,b) (a < b ? a : b)
-
+#define DEFAULT_WAIT_TIME_MS (5000)
 typedef enum {
     APP_PATH_IDX=0,
     DEV_PATH_IDX,
@@ -202,8 +203,8 @@ int main(int argc, const char **argv)
 {
     LOG_DEBUG("Enter main: %d", argc);
 
-    int oprt = 0, err = 0, data_size = 0;
-    int type_size = 0;
+    int oprt = 0, err = 0;
+    int type_size = 0, data_size = 0;
     char data_buf[MAX_RECV_BUF_SIZE] = {0};
 
     /**
@@ -217,7 +218,7 @@ int main(int argc, const char **argv)
     */
     if (argc < 3) {
         LOG_DEBUG("Usage: ./common_drv_tst <dev_path> <operation> <data_size> <data_format> [input_data]");
-        LOG_DEBUG("operation:\n-w: write\n-r: read\n-ioctrl: ioctrl\n-p: poll");
+        LOG_DEBUG("operation:\n-w: write\n-r: read\n-ioctrl: ioctrl\n-p: poll, wait time: %dms", DEFAULT_WAIT_TIME_MS);
         LOG_DEBUG("data_format:\n%%d: int\n%%f: float\n%%ld: long\n%%lf: double\n%%s: string");
         LOG_DEBUG("Input_format:\ndata1,data2,data3,...");
         return OPTR_INIT_ERR;
@@ -292,7 +293,22 @@ int main(int argc, const char **argv)
     } else if (oprt == OPERATION_IOCTRL) {
 
     } else if (oprt == OPERATION_POLL) {
+        struct pollfd pfd;
+        pfd.fd = g_target_fd;
+        pfd.events = POLLIN | POLLRDNORM;
+        if (poll(&pfd, 1, DEFAULT_WAIT_TIME_MS) <= 0) {
+            LOG_DEBUG("poll dev %s failed!", argv[DEV_PATH_IDX]);
+            err = OPTR_POLL_ERR;
+            goto res_free;
+        }
 
+        if (read(g_target_fd, data_buf, MIN(MAX_RECV_BUF_SIZE, data_size * type_size)) < 0) {
+            LOG_DEBUG("read data from dev %s failed: %s", argv[DEV_PATH_IDX], strerror(errno));
+            err = OPTR_READ_ERR;
+            goto res_free;
+        }
+        LOG_DEBUG("read data from driver success: %s", data_buf);
+        buf_print(data_buf, argv[DATA_FORMAT_IDX], data_size);
     } else {
         LOG_DEBUG("Unknown operation: %d", oprt);
         err = OPTR_UNKNOWN;
