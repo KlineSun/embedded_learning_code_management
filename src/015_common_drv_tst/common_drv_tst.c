@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <poll.h>
+#include <signal.h>
 
 #define MAX_RECV_BUF_SIZE (1024)
 #define MIN(a,b) (a < b ? a : b)
@@ -24,14 +25,17 @@ typedef enum {
     OPERATION_WRITE = 0,
     OPERATION_READ,
     OPERATION_IOCTRL,
-    OPERATION_POLL
+    OPERATION_POLL,
+    OPERATION_FASYNC,
 } file_optr_t;
 
 typedef enum {
-    OPTR_UNKNOWN=-7,
+    OPTR_UNKNOWN,
     OPTR_INIT_ERR,
     OPTR_IOCTRL_ERR,
     OPTR_POLL_ERR,
+    OPTR_SIGNAL_ERR,
+    OPTR_FASYNC_ERR,
     OPTR_WRITE_ERR,
     OPTR_READ_ERR,
     OPTR_OPEN_ERR,
@@ -52,7 +56,6 @@ typedef union {
     double d;
 } single_data_type;
 
-int g_target_fd = -1;
 
 int check_data_format(const char *fmt)
 {
@@ -199,6 +202,29 @@ int type_cycle_sscanf(const char* src, void *dest, const char* fmt, size_t cycle
     return 0;
 }
 
+volatile int g_target_fd = -1;
+static bool fasync_ready = false;
+static int fasync_read_cnt = 0;
+// static int fasync_read_fd = -1;
+static void fasync_sig_handler(int signo)
+{
+    if (signo == SIGIO) {
+        char buf[MAX_RECV_BUF_SIZE] = {0};
+        LOG_DEBUG("Device is ready, start to read device data: fd=%d, len=%d", g_target_fd, fasync_read_cnt);
+
+        if (read(g_target_fd, buf, fasync_read_cnt) < 0) {
+            LOG_DEBUG("Read data from device failed: %s", strerror(errno));
+            return;
+        }
+        LOG_DEBUG("read data from driver success: %s", buf);
+        fasync_ready = true;
+    } else if (signo == SIGTERM) {
+        LOG_DEBUG("receive SIGTERM");
+    } else {
+        LOG_DEBUG("Unsupport signal: %d", signo);
+    }
+}
+
 int main(int argc, const char **argv)
 {
     LOG_DEBUG("Enter main: %d", argc);
@@ -218,7 +244,7 @@ int main(int argc, const char **argv)
     */
     if (argc < 3) {
         LOG_DEBUG("Usage: ./common_drv_tst <dev_path> <operation> <data_size> <data_format> [input_data]");
-        LOG_DEBUG("operation:\n-w: write\n-r: read\n-ioctrl: ioctrl\n-p: poll, wait time: %dms", DEFAULT_WAIT_TIME_MS);
+        LOG_DEBUG("operation:\n-w: write\n-r: read\n-ioctrl: ioctrl\n-p: poll, wait time: %dms\n-fa: fasync", DEFAULT_WAIT_TIME_MS);
         LOG_DEBUG("data_format:\n%%d: int\n%%f: float\n%%ld: long\n%%lf: double\n%%s: string");
         LOG_DEBUG("Input_format:\ndata1,data2,data3,...");
         return OPTR_INIT_ERR;
@@ -237,6 +263,8 @@ int main(int argc, const char **argv)
         oprt = OPERATION_IOCTRL;
     } else if (!strcmp(argv[OPERATION_IDX], "-p")) {
         oprt = OPERATION_POLL;
+    } else if (!strcmp(argv[OPERATION_IDX], "-fa")) {
+        oprt = OPERATION_FASYNC;
     } else {
         LOG_DEBUG("unsupport operation: %s", argv[OPERATION_IDX]);
         return OPTR_UNKNOWN;
@@ -267,7 +295,7 @@ int main(int argc, const char **argv)
     }
 
     // open
-    int g_target_fd = open(argv[DEV_PATH_IDX], O_RDWR);
+    g_target_fd = open(argv[DEV_PATH_IDX], O_RDWR);
     if (g_target_fd < 0) {
         LOG_DEBUG("open dev %s failed: %s", argv[DEV_PATH_IDX], strerror(errno));
         err = OPTR_OPEN_ERR;
@@ -288,7 +316,6 @@ int main(int argc, const char **argv)
             err = OPTR_READ_ERR;
             goto res_free;
         }
-        LOG_DEBUG("read data from driver success: %s", data_buf);
         buf_print(data_buf, argv[DATA_FORMAT_IDX], data_size);
     } else if (oprt == OPERATION_IOCTRL) {
 
@@ -307,13 +334,37 @@ int main(int argc, const char **argv)
             err = OPTR_READ_ERR;
             goto res_free;
         }
-        LOG_DEBUG("read data from driver success: %s", data_buf);
         buf_print(data_buf, argv[DATA_FORMAT_IDX], data_size);
+    } else if (oprt == OPERATION_FASYNC) {
+        int flags;
+        struct sigaction act;
+        act.sa_handler = fasync_sig_handler;
+        sigemptyset(&act.sa_mask);
+        act.sa_flags = 0;
+
+        if (sigaction(SIGIO, &act, NULL) < 0 || sigaction(SIGTERM, &act, NULL) < 0) {
+            LOG_DEBUG("Call sigaction failed!");
+            err = OPTR_SIGNAL_ERR;
+            goto res_free;
+        }
+
+        fcntl(g_target_fd, F_SETOWN, getpid());
+        flags = fcntl(g_target_fd, F_GETFL); 
+        fcntl(g_target_fd, F_SETFL, flags | FASYNC);
+        fasync_read_cnt = MIN(MAX_RECV_BUF_SIZE, data_size * type_size);
+        for (;;) {
+            if (fasync_ready) {
+                LOG_DEBUG("fasync msg is handled");
+                fasync_ready = false;
+            }
+
+            LOG_DEBUG("Doing something in main, fd=%d", g_target_fd);
+            sleep(2);
+        }
     } else {
         LOG_DEBUG("Unknown operation: %d", oprt);
         err = OPTR_UNKNOWN;
         goto res_free;
-
     }
 
 res_free:
