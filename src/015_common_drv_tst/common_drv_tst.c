@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <poll.h>
 #include <signal.h>
+#include <sys/mman.h>
 
 #define MAX_RECV_BUF_SIZE (1024)
 #define MIN(a,b) (a < b ? a : b)
@@ -27,19 +28,21 @@ typedef enum {
     OPERATION_IOCTRL,
     OPERATION_POLL,
     OPERATION_FASYNC,
+    OPERATION_MMAP,
 } file_optr_t;
 
 typedef enum {
-    OPTR_UNKNOWN,
+    OPTR_NO_ERR = 0,
     OPTR_INIT_ERR,
+    OPTR_OPEN_ERR,
+    OPTR_READ_ERR,
+    OPTR_WRITE_ERR,
     OPTR_IOCTRL_ERR,
     OPTR_POLL_ERR,
     OPTR_SIGNAL_ERR,
     OPTR_FASYNC_ERR,
-    OPTR_WRITE_ERR,
-    OPTR_READ_ERR,
-    OPTR_OPEN_ERR,
-    OPTR_NO_ERR = 0,
+    OPTR_MMAP_ERR,
+    OPTR_UNKNOWN,
 } file_optr_error_t;
 
 typedef enum {
@@ -245,14 +248,17 @@ int main(int argc, const char **argv)
     if (argc < 3) {
         LOG_DEBUG("Usage: ./common_drv_tst <dev_path> <operation> <data_size> <data_format> [input_data]");
         LOG_DEBUG("operation:\n-w: write\n-r: read\n-ioctrl: ioctrl\n-p: poll, wait time: %dms\n-fa: fasync", DEFAULT_WAIT_TIME_MS);
+        printf("-w: write\n-r: read\n-ioctrl: ioctrl\n");
+        printf("-p: poll, wait time: %dms\n-fa: fasync\n", DEFAULT_WAIT_TIME_MS);
+        printf("-mmap: mmap, usage:\r\n -mmap <data_size> <data_format> [input_data]\r\ninput_data is empty means mmap and read, otherwise means mmap and wirte \n");
         LOG_DEBUG("data_format:\n%%d: int\n%%f: float\n%%ld: long\n%%lf: double\n%%s: string");
         LOG_DEBUG("Input_format:\ndata1,data2,data3,...");
-        return OPTR_INIT_ERR;
+        return -OPTR_INIT_ERR;
     }
 
     if (access(argv[DEV_PATH_IDX], F_OK) != 0) {
         LOG_DEBUG("device is not exist: %s", argv[DEV_PATH_IDX]);
-        return OPTR_INIT_ERR;
+        return -OPTR_INIT_ERR;
     }
 
     if (!strcmp(argv[OPERATION_IDX], "-w") && argc >= 4) {
@@ -265,32 +271,35 @@ int main(int argc, const char **argv)
         oprt = OPERATION_POLL;
     } else if (!strcmp(argv[OPERATION_IDX], "-fa")) {
         oprt = OPERATION_FASYNC;
+    } else if (!strcmp(argv[OPERATION_IDX], "-mmap")) {
+        oprt = OPERATION_MMAP;
     } else {
         LOG_DEBUG("unsupport operation: %s", argv[OPERATION_IDX]);
-        return OPTR_UNKNOWN;
+        return OPTR_INIT_ERR;
     }
 
     // get data size
     data_size = atoi(argv[DATA_SIZE_IDX]);
     if (data_size <= 0 || data_size > MAX_RECV_BUF_SIZE) {
         LOG_DEBUG("invalid data_size: %s", argv[DATA_SIZE_IDX]);
-        return OPTR_UNKNOWN;
+        return OPTR_INIT_ERR;
     }
 
     // check and calculate format size
     type_size = check_data_format(argv[DATA_FORMAT_IDX]);
     if (type_size <= 0 || type_size * data_size > MAX_RECV_BUF_SIZE) {
         LOG_DEBUG("invalid data format: %s", argv[DATA_FORMAT_IDX]);
-        return OPTR_UNKNOWN;
+        return OPTR_INIT_ERR;
     }
 
     LOG_DEBUG("format=%s, type_size=%d, data_size=%d", argv[DATA_FORMAT_IDX], type_size, data_size);
 
     // get input data from cmdline
-    if (oprt == OPERATION_WRITE || oprt == OPERATION_IOCTRL) {
+    if (oprt == OPERATION_WRITE || oprt == OPERATION_IOCTRL
+        || (oprt == OPERATION_MMAP && argc > INPUT_DATA_IDX)) {
         if (type_cycle_sscanf(argv[INPUT_DATA_IDX], data_buf, argv[DATA_FORMAT_IDX], data_size)) {
             LOG_DEBUG("sscanf input string failed: %s", argv[DATA_FORMAT_IDX]);
-            return OPTR_UNKNOWN;
+            return OPTR_INIT_ERR;
         }
     }
 
@@ -361,9 +370,33 @@ int main(int argc, const char **argv)
             LOG_DEBUG("Doing something in main, fd=%d", g_target_fd);
             sleep(2);
         }
+    } else if (oprt == OPERATION_MMAP) {
+        char *mmap_buf = (char *)mmap(NULL, MAX_RECV_BUF_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, g_target_fd, 0);
+        if (mmap_buf == MAP_FAILED) {
+            LOG_DEBUG("mmap failed: %s", strerror(errno));
+            err = OPTR_MMAP_ERR;
+            goto res_free;
+        }
+
+        LOG_DEBUG("mmap kernel buf at address: %p", mmap_buf);
+        if (!strcmp(data_buf, "")) {
+            char recv_buf[MAX_RECV_BUF_SIZE] = {0};
+            // strncpy(recv_buf, mmap_buf, data_size);
+            memcpy(recv_buf, mmap_buf, data_size);
+            LOG_DEBUG("read data from mmap buf: %s", recv_buf);
+        } else {
+            // strncpy(mmap_buf, data_buf, data_size);
+            memcpy(mmap_buf, data_buf, data_size);
+            LOG_DEBUG("write data to mmap buf: %s", data_buf);
+        }
+
+        for (;;) {
+            sleep(2);
+        }
+        munmap(mmap_buf, MAX_RECV_BUF_SIZE);
     } else {
         LOG_DEBUG("Unknown operation: %d", oprt);
-        err = OPTR_UNKNOWN;
+        err = OPTR_INIT_ERR;
         goto res_free;
     }
 
