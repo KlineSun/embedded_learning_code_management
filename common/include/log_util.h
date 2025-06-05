@@ -3,4 +3,4 @@
 
 char *get_time_str();
 
-#endif
+#endif //LOG_UTIL_H
