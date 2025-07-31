@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "log_util.h"
 
 //=====================type define begin=====================
@@ -19,6 +20,8 @@ typedef unsigned char u_8bit_t;
 #define CHINESE_BYTES (2)
 #define MAX_FILE_LINE_LENTH 2048
 #define PI (3.1415)
+#define MAX_SHELL_CMD_LEN       (1024)
+#define MAX_SHELL_RESULT_LEN    (1024)
 
 
 //color
@@ -37,7 +40,6 @@ typedef unsigned char u_8bit_t;
 
 
 //=====================func define begin=====================
-#define LOG_DEBUG(format, ...) printf("%s %s() %d: "format"\n", get_time_str(), __func__, __LINE__, ##__VA_ARGS__)
 
 #define LIST_ADD_NODE(head, node) { \
         if (head != NULL && node != NULL) { \
@@ -60,12 +62,25 @@ typedef unsigned char u_8bit_t;
 #define LIST_LEN(x) (sizeof(x) / sizeof((x)[0]))
 
 #define ANGLE(x) (angle_t)((x / 360) * PI * 2)
+#define MKCMD(cmd) ("bash -c \"" cmd "\" 2>&1")
+
+#define FILE_READ_FLAG (0)
+#define FILE_WRITE_FLAG (1)
+typedef struct {
+    int min_x;
+    int min_y;
+    int max_x;
+    int max_y;
+} region_2d;
 
 
 void trim_string(char *str);
 bool is_all_spaces(const char* str);
 size_t file_mmap(const char *path, size_t size, int port, int flag, off_t offset, void **ptr);
 void str2hex_print(void *ptr, size_t bytes);
+int shell_cmd_excute(const char *cmd, char *result, int len);
+int read_file_string(const char *path, char *buf, size_t len);
+int write_file_string(const char *path, char *buf, size_t len);
 //=====================func define end=======================
 
 #endif // COMMON_UTIL_H

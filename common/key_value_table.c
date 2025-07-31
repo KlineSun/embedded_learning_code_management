@@ -17,29 +17,29 @@ pthread_mutex_t g_kv_mutex;
 int parse_kv(char *buf, key_value_node_t *node)
 {
     if (NULL == buf || NULL == node) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
     if (2 > strlen(buf)) {
-        LOG_DEBUG("empty line!");
+        LOG_INFO("empty line!");
         return -1;
     }
 
     if (NULL == strstr(buf, KEY_VALUE_SEPARATOR)) {
-        LOG_DEBUG("format error: %s", buf);
+        LOG_INFO("format error: %s", buf);
         return -1;
     }
 
     char *key = strtok(buf, KEY_VALUE_SEPARATOR);
     char *value = strtok(NULL, KEY_VALUE_SEPARATOR);
     if (NULL == key || NULL == value) {
-        LOG_DEBUG("Invalid buf!");
+        LOG_INFO("Invalid buf!");
         return -1;
     }
 
     if ( MAX_TABLE_KEY_LENTH <= strlen(key) || MAX_TABLE_VALUE_LENTH <= strlen(value)) {
-        LOG_DEBUG("key value is too long!");
+        LOG_INFO("key value is too long!");
         return -1;
     }
 
@@ -51,7 +51,7 @@ int parse_kv(char *buf, key_value_node_t *node)
     snprintf(node->key, MAX_TABLE_KEY_LENTH, "%s", key);
     snprintf(node->value, MAX_TABLE_VALUE_LENTH, "%s", value);
 
-    // LOG_DEBUG("Get key: %s, value: %s", node->key, node->value);
+    // LOG_INFO("Get key: %s, value: %s", node->key, node->value);
     return 0;
 }
 
@@ -61,11 +61,11 @@ int kv_table_init()
 
     pthread_mutex_lock(&g_kv_mutex);
     if (1 == g_kv_init_flag) {
-        LOG_DEBUG("Already initialized");
+        LOG_INFO("Already initialized");
         return 0;
     }
     pthread_mutex_unlock(&g_kv_mutex);
-    LOG_DEBUG("key-value table init");
+    LOG_INFO("key-value table init");
 
     FILE *fp = NULL;
     int ret = 0;
@@ -74,10 +74,10 @@ int kv_table_init()
     if (NULL == fp) {
         fp = fopen(KEY_VALUE_TABLE_PATH, "w+");
         if (NULL == fp) {
-            LOG_DEBUG("create %s failed!", KEY_VALUE_TABLE_PATH);
+            LOG_INFO("create %s failed!", KEY_VALUE_TABLE_PATH);
             return -1;
         }
-        LOG_DEBUG("create %s success!", KEY_VALUE_TABLE_PATH);
+        LOG_INFO("create %s success!", KEY_VALUE_TABLE_PATH);
     }
 
     // 初始化哈希表
@@ -88,14 +88,14 @@ int kv_table_init()
 
         key_value_node_t *node = (key_value_node_t *)malloc(sizeof(key_value_node_t));
         if (NULL == node) {
-            LOG_DEBUG("malloc failed!");
+            LOG_INFO("malloc failed!");
             fclose(fp);
             return -1;
         }
 
         ret = parse_kv(line_buf, node);
         if (0 != ret) {
-            LOG_DEBUG("parse key value failed!");
+            LOG_INFO("parse key value failed!");
             free(node);
             node = NULL;
             continue;
@@ -117,7 +117,7 @@ int kv_table_init()
         memset(line_buf, 0, MAX_FILE_LINE_LENTH);
     }
 
-    //LOG_DEBUG("Parsing the table ends with a total of %d key-value pairs obtained", g_kv_count);
+    //LOG_INFO("Parsing the table ends with a total of %d key-value pairs obtained", g_kv_count);
     g_kv_init_flag = 1;
     fclose(fp);
     return 0;
@@ -126,12 +126,12 @@ int kv_table_init()
 int get_kv(const char *key, char *value)
 {
     if (NULL == key || NULL == value) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
     if (1 > strlen(key) || MAX_TABLE_KEY_LENTH < strlen(key)) {
-        LOG_DEBUG("Invalid key!");
+        LOG_INFO("Invalid key!");
         return -1;
     }
 
@@ -144,7 +144,7 @@ int get_kv(const char *key, char *value)
         node = node->next;
     }
 
-    LOG_DEBUG("Not find %s in table", key);
+    LOG_INFO("Not find %s in table", key);
     return -1;
 }
 
@@ -153,12 +153,12 @@ int flush_kv_file()
     FILE *fp = NULL;
     fp = fopen(KEY_VALUE_TABLE_PATH, "w+");
     if (NULL == fp) {
-        LOG_DEBUG("open %s failed!", KEY_VALUE_TABLE_PATH);
+        LOG_INFO("open %s failed!", KEY_VALUE_TABLE_PATH);
         return -1;
     }
 
     if (NULL == g_kv_table || 0 == g_kv_count) {
-        LOG_DEBUG("No key-value pairs in list");
+        LOG_INFO("No key-value pairs in list");
         fclose(fp);
         fp = NULL;
         return 0;
@@ -180,12 +180,12 @@ int flush_kv_file()
 int append_kv(const char *key, const char *value)
 {
     if (NULL == key || NULL == value) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
     if (1 > strlen(key) || 1 > strlen(value)) {
-        LOG_DEBUG("Invalid key!");
+        LOG_INFO("Invalid key!");
         return -1;
     }
 
@@ -195,14 +195,14 @@ int append_kv(const char *key, const char *value)
     FILE *fp = NULL;
     fp = fopen(KEY_VALUE_TABLE_PATH, "a+");
     if (NULL == fp) {
-        LOG_DEBUG("open %s failed!", KEY_VALUE_TABLE_PATH);
+        LOG_INFO("open %s failed!", KEY_VALUE_TABLE_PATH);
         return -1;
     }
 
     pthread_mutex_lock(&g_kv_mutex);
     int ret = fprintf(fp, "%s", line);
     if (1 > ret) {
-        LOG_DEBUG("write %s into %s failed!", line, KEY_VALUE_TABLE_PATH);
+        LOG_INFO("write %s into %s failed!", line, KEY_VALUE_TABLE_PATH);
         return -1;
     }
 
@@ -216,17 +216,17 @@ int append_kv(const char *key, const char *value)
 int is_exist_key(const char *key)
 {
     if (NULL == key) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
     if (1 > strlen(key) || MAX_TABLE_KEY_LENTH < strlen(key)) {
-        LOG_DEBUG("Invalid key!");
+        LOG_INFO("Invalid key!");
         return -1;
     }
 
     if (NULL == g_kv_table || 0 == g_kv_count) {
-        LOG_DEBUG("No key-value pairs in list");
+        LOG_INFO("No key-value pairs in list");
         return -1;
     }
 
@@ -243,22 +243,22 @@ int is_exist_key(const char *key)
 int modify_kv(const char *key, const char *value)
 {
     if (NULL == key || NULL == value) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
     if (1 > strlen(key) || 1 > strlen(value)) {
-        LOG_DEBUG("Invalid key!");
+        LOG_INFO("Invalid key!");
         return -1;
     }
 
     if (NULL == g_kv_table || 0 == g_kv_count) {
-        LOG_DEBUG("No key-value pairs in list");
+        LOG_INFO("No key-value pairs in list");
         return -1;
     }
 
     if (1 != is_exist_key(key)) {
-        LOG_DEBUG("Not find %s in table", key);
+        LOG_INFO("Not find %s in table", key);
         return -1;
     }
 
@@ -279,19 +279,19 @@ int modify_kv(const char *key, const char *value)
 int add_kv(const char *key, const char *value)
 {
     if (NULL == key || NULL == value) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
     if (1 > strlen(key) || 1 > strlen(value)
         || MAX_TABLE_KEY_LENTH < strlen(key)
         ||  MAX_TABLE_VALUE_LENTH < strlen(value)) {
-        LOG_DEBUG("Invalid key!");
+        LOG_INFO("Invalid key!");
         return -1;
     }
 
     if (1 == is_exist_key(key)) {
-        // LOG_DEBUG("Already exist %s in table, modify it!", key);
+        // LOG_INFO("Already exist %s in table, modify it!", key);
         modify_kv(key, value);
         return 0;
     }
@@ -299,7 +299,7 @@ int add_kv(const char *key, const char *value)
     int ret = 0;
     key_value_node_t *node = (key_value_node_t *)malloc(sizeof(key_value_node_t));
     if (NULL == node) {
-        LOG_DEBUG("malloc failed!");
+        LOG_INFO("malloc failed!");
         return -1;
     }
     
@@ -328,28 +328,28 @@ int add_kv(const char *key, const char *value)
         ret = append_kv(node->key , node->value);
     }
     if (0 != ret) {
-        LOG_DEBUG("save key value into %s failed!", KEY_VALUE_TABLE_PATH);
+        LOG_INFO("save key value into %s failed!", KEY_VALUE_TABLE_PATH);
         return -1;
     }
 
-    // LOG_DEBUG("Save \"%s%s%s\" into table", key, KEY_VALUE_SEPARATOR, value);
+    // LOG_INFO("Save \"%s%s%s\" into table", key, KEY_VALUE_SEPARATOR, value);
     return 0;
 }
 
 int delete_kv(const char *key)
 {
     if (NULL == key) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
     if (1 > strlen(key)) {
-        LOG_DEBUG("Invalid key!");
+        LOG_INFO("Invalid key!");
         return -1;
     }
 
     if (NULL == g_kv_table || 0 == g_kv_count) {
-        LOG_DEBUG("No key-value pairs in list");
+        LOG_INFO("No key-value pairs in list");
         return -1;
     }
 
@@ -375,7 +375,7 @@ int delete_kv(const char *key)
 
     int ret = flush_kv_file();
     if (0 != ret) {
-        LOG_DEBUG("fluse key value list into %s failed!", KEY_VALUE_TABLE_PATH);
+        LOG_INFO("fluse key value list into %s failed!", KEY_VALUE_TABLE_PATH);
         return -1;
     }
 
@@ -385,7 +385,7 @@ int delete_kv(const char *key)
 int destroy_kv_table()
 {
     if (NULL == g_kv_table || 0 == g_kv_count) {
-        LOG_DEBUG("No key-value pairs in list");
+        LOG_INFO("No key-value pairs in list");
         return -1;
     }
 

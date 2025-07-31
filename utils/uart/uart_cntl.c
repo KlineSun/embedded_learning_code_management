@@ -13,10 +13,10 @@ int config_uart_attr(int fd,
 {
     // 检查参数是否合法
     if (fd < 0 || speed <= 0 || speed > 921600 || data_bits < 5 || data_bits > 8) {
-        LOG_DEBUG("Invalid parameter!");
+        LOG_INFO("Invalid parameter!");
         return -1;
     }
-    LOG_DEBUG("Terminal setting: %d%c%d %d, %s", data_bits,
+    LOG_INFO("Terminal setting: %d%c%d %d, %s", data_bits,
                                                 verify,
                                                 stop_bits,
                                                 speed,
@@ -25,7 +25,7 @@ int config_uart_attr(int fd,
     // get origin data
     struct termios origin_setting, new_setting;
     if (tcgetattr(fd, &origin_setting)) {
-        LOG_DEBUG("get struct termios failed!");
+        LOG_INFO("get struct termios failed!");
         return -1;
     }
 
@@ -63,7 +63,7 @@ int config_uart_attr(int fd,
             new_setting.c_cflag |= CS5;
             break;
         default :
-            LOG_DEBUG("invalid data bits!");
+            LOG_INFO("invalid data bits!");
             return -1;
     }
 
@@ -84,7 +84,7 @@ int config_uart_attr(int fd,
             new_setting.c_oflag |= (INPCK | ISTRIP);
             break;
         default :
-            LOG_DEBUG("invalid verify mode!");
+            LOG_INFO("invalid verify mode!");
             return -1;
     }
 
@@ -98,7 +98,7 @@ int config_uart_attr(int fd,
             new_setting.c_cflag |= CSTOPB;
             break;
         default :
-            LOG_DEBUG("invalid stop_bits!");
+            LOG_INFO("invalid stop_bits!");
             return -1;
     }
 
@@ -137,9 +137,9 @@ int config_uart_attr(int fd,
 
     // set struct
     if (tcsetattr(fd, TCSANOW, &new_setting)) {
-        LOG_DEBUG("set terminal attributes failed!");
+        LOG_INFO("set terminal attributes failed!");
         return -1;
     }
-    LOG_DEBUG("Set success!");
+    LOG_INFO("Set success!");
     return 0;
 }

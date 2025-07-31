@@ -4,6 +4,6 @@
 
 void a_debug_func()
 {
-    LOG_DEBUG("a_debug_func\n");
+    LOG_INFO("a_debug_func\n");
     return;
 }

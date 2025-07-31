@@ -14,7 +14,7 @@ bool g_init_flag = false;
 int freetype_init(int font_size)
 {
     if (g_init_flag && g_ft_lib != NULL && g_ft_face != NULL) {
-        LOG_DEBUG("Freetype already inited!");
+        LOG_INFO("Freetype already inited!");
         return INIT_LIBRARY_ERR;
     }
 
@@ -22,21 +22,21 @@ int freetype_init(int font_size)
 
     int err = FT_Init_FreeType(&g_ft_lib);
     if (err != 0) {
-        LOG_DEBUG("Init freetype library failed!");
+        LOG_INFO("Init freetype library failed!");
         return INIT_LIBRARY_ERR;
     }
 
     err = FT_New_Face(g_ft_lib, FONT_DICTIONARY_PATH, 0, &g_ft_face);
     if (err != 0) {
-        LOG_DEBUG("Open Fonts failed!");
+        LOG_INFO("Open Fonts failed!");
         return FT_OPEN_RESOURCE_ERR;
     }
 
-    LOG_DEBUG("There is %ld faces in font file", g_ft_face->num_faces);
+    LOG_INFO("There is %ld faces in font file", g_ft_face->num_faces);
 
     err = FT_Set_Pixel_Sizes(g_ft_face, size, 0);
     if (err != 0) {
-        LOG_DEBUG("FT_Set_Pixel_Sizes failed!");
+        LOG_INFO("FT_Set_Pixel_Sizes failed!");
         return FT_SET_SIZE_ERR;
     }
 
@@ -47,24 +47,24 @@ int freetype_init(int font_size)
 int get_freetype_bitmap(FT_Face face, ft_code_t code, bitmap_t *bp)
 {
     if (bp == NULL || face == NULL || !code) {
-        LOG_DEBUG("Invalid arguments!");
+        LOG_INFO("Invalid arguments!");
         return FT_INVALID_ARGUMENT;
     }
 
     int err = FT_Load_Char(face, code, FT_LOAD_RENDER);
     if (err != 0) {
-        LOG_DEBUG("load char failed!");
+        LOG_INFO("load char failed!");
         return FT_LOAD_CHAR_ERR;
     }
 
     FT_GlyphSlot ft_slot = face->glyph;
     if (ft_slot == NULL) {
-        LOG_DEBUG("get freetype slot failed!");
+        LOG_INFO("get freetype slot failed!");
         return FT_GET_SLOT_ERR;
     }
 
     memcpy(bp, &ft_slot->bitmap, sizeof(bitmap_t));
-    // LOG_DEBUG("bitmap.width = %d, bitmap.rows = %d, ad_x = %d, ad_y = %d", ft_slot->bitmap.width, ft_slot->bitmap.rows,
+    // LOG_INFO("bitmap.width = %d, bitmap.rows = %d, ad_x = %d, ad_y = %d", ft_slot->bitmap.width, ft_slot->bitmap.rows,
     //                         ft_slot->advance.x, ft_slot->advance.y);
 
     return FT_NO_ERR;
@@ -74,12 +74,12 @@ int get_freetype_bitmap(FT_Face face, ft_code_t code, bitmap_t *bp)
 int ft_rotate_transfer(float rota_angle, point_t *pp)
 {
     if (pp == NULL) {
-        LOG_DEBUG("Invalid arguments!");
+        LOG_INFO("Invalid arguments!");
         return FT_INVALID_ARGUMENT;
     }
 
     if (!g_init_flag || g_ft_lib == NULL || g_ft_face == NULL) {
-        LOG_DEBUG("Freetype not initialized yet!");
+        LOG_INFO("Freetype not initialized yet!");
         return FT_USE_WITHOUT_INIT;
     }
 
