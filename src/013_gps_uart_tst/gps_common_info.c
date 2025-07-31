@@ -10,14 +10,14 @@
 int parse_time_string(const char *time_str, const char *format, gps_time_t *t)
 {
     if (!time_str || !format || !t) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
     struct tm tv;
     char ch_slot[4] = {0};
     if (!strcmp(format, "YYYY-MM-DD hh:mm:ss")) {
-        LOG_DEBUG("just skip!");
+        LOG_INFO("just skip!");
     } else if (!strcmp(format, "hhmmss.ss")) {
         // get hh
         strncpy(ch_slot, time_str, 2);
@@ -38,9 +38,9 @@ int parse_time_string(const char *time_str, const char *format, gps_time_t *t)
         strncpy(ch_slot, time_str + 7, 8);
         t->tm_ms = atoi(ch_slot);
 
-        LOG_DEBUG("gps time: %d:%d:%:%d.%d", t->tv.tm_hour, t->tv.tm_min, t->tv.tm_sec, t->tm_ms);
+        LOG_INFO("gps time: %d:%d:%:%d.%d", t->tv.tm_hour, t->tv.tm_min, t->tv.tm_sec, t->tm_ms);
     } else {
-        LOG_DEBUG("Unsupport time format!");
+        LOG_INFO("Unsupport time format!");
         return -1;
     }
 
@@ -49,39 +49,39 @@ int parse_time_string(const char *time_str, const char *format, gps_time_t *t)
 int minute_to_degree(double *min_data, double *degree_result, double integer_weight) {
 
     if (!min_data || !degree_result) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
     if (integer_weight <= 0 || (integer_weight != 1 && fmod(integer_weight, 10.0) != 0)) {
-        LOG_DEBUG("Invalid weight!");
+        LOG_INFO("Invalid weight!");
         return -1;
     }
 
     double integer = *min_data / integer_weight;
     double decimal = fmod(*min_data, integer_weight);
-    LOG_DEBUG("integer: %lf, decimal: %lf", integer, decimal);
+    LOG_INFO("integer: %lf, decimal: %lf", integer, decimal);
     if (decimal > 60.0) {
-        LOG_DEBUG("Invalid decimal, greater than 60.0!");
+        LOG_INFO("Invalid decimal, greater than 60.0!");
         return -1;
     }
 
     *degree_result = integer + integer_weight * (decimal / 60.0);
-    LOG_DEBUG("convert minute: %lf to degree: %lf", *min_data, *degree_result);
+    LOG_INFO("convert minute: %lf to degree: %lf", *min_data, *degree_result);
     return 0;
 }
 
 static int gpgga_info_parser(const char* raw_data, gpgga_info_t *result)
 {
     if (!raw_data || !result || strlen(raw_data) > MAX_GPS_RAW_DATA_LEN) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
     // const char *gpgga1 = "$GPGGA,085412.00,3150.7821,N,11711.9339,E,1,08,1.2,56.4,M,-34.8,M,01.2,0000*76";
     // const char *gpgga2 = "$GPGGA,085512.00,3150.8021,N,11711.9539,E,1,08,1.2,56.4,M,-34.8,M,01.2,0000*77";
 
-    LOG_DEBUG("Enter!");
+    LOG_INFO("Enter!");
 
     // match
     // "$GPGGA,085412.00,3150.7821,N,11711.9339,E,1,08,1.2,56.4,M,-34.8,M,01.2,0000*76";
@@ -106,21 +106,21 @@ static int gpgga_info_parser(const char* raw_data, gpgga_info_t *result)
     );
 
     if (ret != 15) {
-        LOG_DEBUG("Match gpgga attributes failed, matched items count: %d", ret);
+        LOG_INFO("Match gpgga attributes failed, matched items count: %d", ret);
         return -1;
     }
 
-    LOG_DEBUG("Match success!");
+    LOG_INFO("Match success!");
 
     
 
     if (minute_to_degree(&(result->lati), &(result->lati), 100.0)
         || minute_to_degree(&(result->longi), &(result->longi), 100.0)) {
-        LOG_DEBUG("convert minute data to degree failed!");
+        LOG_INFO("convert minute data to degree failed!");
         return -1;
     }
 
-    LOG_DEBUG("location on lati: %lf %c, longi: %lf %c", result->lati, result->lati_hemi, result->longi, result->longi_hemi);
+    LOG_INFO("location on lati: %lf %c, longi: %lf %c", result->lati, result->lati_hemi, result->longi, result->longi_hemi);
 
     return 0;
 }
@@ -128,7 +128,7 @@ static int gpgga_info_parser(const char* raw_data, gpgga_info_t *result)
 static int gprmc_info_parser(const char* raw_data, gprmc_info_t *result)
 {
     if (!raw_data || !result) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
@@ -139,7 +139,7 @@ static int gprmc_info_parser(const char* raw_data, gprmc_info_t *result)
 static int gpgsv_info_parser(const char* raw_data, gpgsv_info_t *result)
 {
     if (!raw_data || !result) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
@@ -150,7 +150,7 @@ static int gpgsv_info_parser(const char* raw_data, gpgsv_info_t *result)
 static int gpgsa_info_parser(const char* raw_data, gpgsa_info_t *result)
 {
     if (!raw_data || !result) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
@@ -161,7 +161,7 @@ static int gpgsa_info_parser(const char* raw_data, gpgsa_info_t *result)
 static int gpvtg_info_parser(const char* raw_data, gpvtg_info_t *result)
 {
     if (!raw_data || !result) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
@@ -173,7 +173,7 @@ static int gpvtg_info_parser(const char* raw_data, gpvtg_info_t *result)
 gps_info_type parse_gps_raw_data(const char *raw_data, gps_common_info *result)
 {
     if (!raw_data || !result) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return GPS_INVALID_TYPE;
     }
 
@@ -223,19 +223,19 @@ gps_info_type parse_gps_raw_data(const char *raw_data, gps_common_info *result)
         if (gpvtg_info_parser(raw_data, parse_result) != 0)
             goto parse_error;
     } else {
-        LOG_DEBUG("Unsupport type!");
+        LOG_INFO("Unsupport type!");
         return GPS_INVALID_TYPE;
     }
 
-    LOG_DEBUG("parse info success! type: %d", t);
+    LOG_INFO("parse info success! type: %d", t);
     return t;
 
 malloc_error:
-    LOG_DEBUG("malloc error!");
+    LOG_INFO("malloc error!");
     return GPS_INVALID_TYPE;
 
 parse_error:
-    LOG_DEBUG("parse error!");
+    LOG_INFO("parse error!");
     free(parse_result);
     return GPS_INVALID_TYPE;
 }

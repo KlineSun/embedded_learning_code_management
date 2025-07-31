@@ -20,27 +20,27 @@
 int freetype_init_local(FT_Library *lib, FT_Face *face, int font_size)
 {
     if (lib == NULL || face == NULL) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return INIT_LIBRARY_ERR;
     }
 
     int err = FT_Init_FreeType(lib);
     if (err != 0) {
-        LOG_DEBUG("Init freetype library failed!");
+        LOG_INFO("Init freetype library failed!");
         return INIT_LIBRARY_ERR;
     }
 
     err = FT_New_Face(*lib, FONT_DICTIONARY_PATH, 0, face);
     if (err != 0 || *face == NULL) {
-        LOG_DEBUG("Open Fonts failed!");
+        LOG_INFO("Open Fonts failed!");
         return FT_OPEN_RESOURCE_ERR;
     }
 
-    LOG_DEBUG("There is %ld faces in font file", (*face)->num_faces);
+    LOG_INFO("There is %ld faces in font file", (*face)->num_faces);
 
     err = FT_Set_Pixel_Sizes(*face, font_size, 0);
     if (err != 0) {
-        LOG_DEBUG("FT_Set_Pixel_Sizes failed!");
+        LOG_INFO("FT_Set_Pixel_Sizes failed!");
         return FT_SET_SIZE_ERR;
     }
 
@@ -50,7 +50,7 @@ int freetype_init_local(FT_Library *lib, FT_Face *face, int font_size)
 int get_strint_box(FT_Face face, wchar_t *str, int len, FT_BBox *box)
 {
     if (str == NULL || face == NULL || box == NULL || len <= 0) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
@@ -71,14 +71,14 @@ int get_strint_box(FT_Face face, wchar_t *str, int len, FT_BBox *box)
     for (int i = 0; i < len; i++) {
         err = FT_Load_Char(face, str[i], FT_LOAD_RENDER);
         if (err != 0) {
-            LOG_DEBUG("load char failed!");
+            LOG_INFO("load char failed!");
             return FT_LOAD_CHAR_ERR;
         }
 
         ft_slot = face->glyph;
         err = FT_Get_Glyph(ft_slot, &glyph);
         if (err != 0) {
-            LOG_DEBUG("get glyph from slot failed!");
+            LOG_INFO("get glyph from slot failed!");
             return FT_GET_SLOT_ERR;
         }
 
@@ -89,7 +89,7 @@ int get_strint_box(FT_Face face, wchar_t *str, int len, FT_BBox *box)
         max_box.yMax = single_box.yMax > max_box.yMax ? single_box.yMax : max_box.yMax;
         max_box.yMin = single_box.yMin < max_box.yMin ? single_box.yMin : max_box.yMin;
     }
-    LOG_DEBUG("xMax=%ld, xMin=%ld, yMax=%ld, yMin=%ld", max_box.xMax, max_box.xMin, max_box.yMax, max_box.yMin);
+    LOG_INFO("xMax=%ld, xMin=%ld, yMax=%ld, yMin=%ld", max_box.xMax, max_box.xMin, max_box.yMax, max_box.yMin);
 
     memcpy(box, &max_box, sizeof(FT_BBox));
     return 0;
@@ -104,7 +104,7 @@ int get_strint_box(FT_Face face, wchar_t *str, int len, FT_BBox *box)
 int main(int argc, char const *argv[])
 {
 
-    LOG_DEBUG("Enter main!");
+    LOG_INFO("Enter main!");
 
     int font_size = DEFAULT_FONT_SIZE;
     float angle = 0.0;
@@ -127,7 +127,7 @@ int main(int argc, char const *argv[])
         default:
             break;
     }
-    LOG_DEBUG("origin lcd pos=(%ld, %ld), font_size= %d", pen_lcd.x, pen_lcd.y, font_size);
+    LOG_INFO("origin lcd pos=(%ld, %ld), font_size= %d", pen_lcd.x, pen_lcd.y, font_size);
 
     fb_t fb;
     wchar_t chinese_str[48] = L"张笨笨Lisa永远爱孙帅帅Kline";
@@ -140,7 +140,7 @@ int main(int argc, char const *argv[])
     FT_Face ft_face = NULL;
     int err = freetype_init_local(&ft_lib, &ft_face, font_size);
     if (err != 0 || ft_lib == NULL || ft_face == NULL) {
-        LOG_DEBUG("Init freetype failed!");
+        LOG_INFO("Init freetype failed!");
         fb_deinit(&fb);
         return EXCUTE_FAILED_EXIT;
     }
@@ -149,11 +149,11 @@ int main(int argc, char const *argv[])
     bitmap_t b_map;
     err = get_strint_box(ft_face, chinese_str, LIST_LEN(chinese_str), &str_box);
     if (err != 0) {
-        LOG_DEBUG("get string's box failed!");
+        LOG_INFO("get string's box failed!");
         fb_deinit(&fb);
         return EXCUTE_FAILED_EXIT;
     }
-    LOG_DEBUG("xMax=%ld, xMin=%ld, yMax=%ld, yMin=%ld", str_box.xMax, str_box.xMin, str_box.yMax, str_box.yMin);
+    LOG_INFO("xMax=%ld, xMin=%ld, yMax=%ld, yMin=%ld", str_box.xMax, str_box.xMin, str_box.yMax, str_box.yMin);
     
     // convert to decare, and get new origin point
     FT_Vector pen_dcr_ft_64 = {
@@ -175,19 +175,19 @@ int main(int argc, char const *argv[])
 
         err = FT_Load_Char(ft_face, chinese_str[i], FT_LOAD_RENDER);
         if (err != 0) {
-            LOG_DEBUG("load char failed!");
+            LOG_INFO("load char failed!");
             return FT_LOAD_CHAR_ERR;
         }
 
         // judge end of string
         if (chinese_str[i] == 0) {
-            LOG_DEBUG("End of String!");
+            LOG_INFO("End of String!");
             break;
         }
 
         err = FT_Load_Char(ft_face, chinese_str[i], FT_LOAD_RENDER);
         if (err != 0) {
-            LOG_DEBUG("Get slot failed!");
+            LOG_INFO("Get slot failed!");
             break;
         }
         FT_GlyphSlot slot = ft_face->glyph;
@@ -200,7 +200,7 @@ int main(int argc, char const *argv[])
 
         // if length out of screen, draw to next line
         if (slot->bitmap_left + b_map.width > fb.sc_var.xres) {
-            LOG_DEBUG("move to next line slot failed!");
+            LOG_INFO("move to next line slot failed!");
             draw_pen.x = FONT_PAGE_MARGIN_X;
             draw_pen.y += FONT_LINE_MARGIN + (str_box.yMax / 64);
             pen_dcr_ft_64.x = draw_pen.x * 64 - str_box.xMin;
@@ -208,7 +208,7 @@ int main(int argc, char const *argv[])
         }
         // convert y to lcd 
         draw_bitmap(&fb, &b_map, &draw_pen, RGB_COLOR_RED);
-        LOG_DEBUG("advance: %d, %d", slot->advance.x / 64, slot->advance.y / 64);
+        LOG_INFO("advance: %d, %d", slot->advance.x / 64, slot->advance.y / 64);
 
         // move to next char
         pen_dcr_ft_64.x += slot->advance.x;

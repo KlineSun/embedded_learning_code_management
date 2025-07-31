@@ -47,20 +47,20 @@ static size_t g_hzk_mem_size = 0;
 int fb_init(const char *fb_path, fb_t *fb)
 {
     if (fb_path == NULL || fb == NULL) {
-        LOG_DEBUG("Invalid parameter!");
+        LOG_INFO("Invalid parameter!");
         return -1;
     }
     // 打开设备文件
     int fd = open(fb_path, O_RDWR);
     if (fd < 0) {
-        LOG_DEBUG("open framebuffer device failed");
+        LOG_INFO("open framebuffer device failed");
         return -1;
     }
 
     // 获取设备信息
     int ret = ioctl(fd, FBIOGET_VSCREENINFO, &(fb->sc_var));
     if (ret < 0) {
-        LOG_DEBUG("get variable screen info failed");
+        LOG_INFO("get variable screen info failed");
         close(fd);
         return -1;
     }
@@ -69,12 +69,12 @@ int fb_init(const char *fb_path, fb_t *fb)
     fb->map_size = fb->sc_var.xres * fb->sc_var.yres * fb->pixel_bs;
     fb->line_bs  = fb->sc_var.xres * fb->pixel_bs;
 
-    LOG_DEBUG("pixel_bs: %d, map_size: %d, line_bs: %d", fb->pixel_bs, (int)fb->map_size, fb->line_bs);
+    LOG_INFO("pixel_bs: %d, map_size: %d, line_bs: %d", fb->pixel_bs, (int)fb->map_size, fb->line_bs);
 
     // 获取设备内存
     char *mmap_ptr = (unsigned char *)mmap(NULL, fb->map_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (mmap_ptr <= 0 || mmap_ptr == MAP_FAILED) {
-        LOG_DEBUG("mmap framebuffer device failed");
+        LOG_INFO("mmap framebuffer device failed");
         close(fd);
         return -1;
     }
@@ -100,7 +100,7 @@ void fb_deinit(fb_t *fb)
 void fb_fill(fb_t *fb, size_t fill_size, size_t offset, unsigned char byte_value)
 {
     if (fb == NULL || (fill_size + offset) > fb->map_size) {
-        LOG_DEBUG("Invalid parameter!");
+        LOG_INFO("Invalid parameter!");
         return;
     }
 
@@ -110,12 +110,12 @@ void fb_fill(fb_t *fb, size_t fill_size, size_t offset, unsigned char byte_value
 int draw_pixel(fb_t *fb, pixel_t *pp)
 {
     if (fb == NULL || pp == NULL) {
-        LOG_DEBUG("Invalid parameter!");
+        LOG_INFO("Invalid parameter!");
         return -1;
     }
 
     if (pp->pt.x > fb->sc_var.xres ||  pp->pt.y > fb->sc_var.yres) {
-        LOG_DEBUG("invalid position: (%d, %d)", pp->pt.x, pp->pt.y);
+        LOG_INFO("invalid position: (%d, %d)", pp->pt.x, pp->pt.y);
         return -1;
     }
 
@@ -133,16 +133,16 @@ int draw_pixel(fb_t *fb, pixel_t *pp)
             red   = (pp->color >> 16) & 0xff;
             green = (pp->color >> 8)  & 0xff;
             blue =  pp->color & 0xff;
-            //LOG_DEBUG("get RGB: red = 0x%x, green = 0x%x, blue = 0x%x", red, green, blue);
+            //LOG_INFO("get RGB: red = 0x%x, green = 0x%x, blue = 0x%x", red, green, blue);
             comb_color = ((red >> 3) << 11) | ((green >> 2) << 5) | (blue >> 3);
-            //LOG_DEBUG("combine RGB565: 0x%x", comb_color);
+            //LOG_INFO("combine RGB565: 0x%x", comb_color);
             *addr_16 = comb_color;
             break;
         case 32:
             *addr_32 = pp->color;
             break;
         default:
-            LOG_DEBUG("Unsupport bpp!");
+            LOG_INFO("Unsupport bpp!");
             return -1;
     }
     return 0;
@@ -162,17 +162,17 @@ unsigned char *get_ascii_bitmap_8x16(char val)
 unsigned char *get_bitmap_16x16(unsigned char *bitmap_repo, size_t repo_size, unsigned char *code)
 {
     if (bitmap_repo == NULL || code == NULL) {
-        LOG_DEBUG("Invalid parameter!");
+        LOG_INFO("Invalid parameter!");
         return NULL;
     }
 
 #ifdef HZK16_RESOURCE_SUPPORT
 
     unsigned long index = ((code[0] - ASCII_RESERVED) * AREA_CHINESE_CNT + (code[1] - ASCII_RESERVED)) * CHINESE_BITMAP_BYTES;
-    LOG_DEBUG("get index: %lu", index);
+    LOG_INFO("get index: %lu", index);
 
     if (index >= repo_size) {
-        LOG_DEBUG("index out of the bitmap repository!");
+        LOG_INFO("index out of the bitmap repository!");
         return NULL;
     }
 
@@ -186,14 +186,14 @@ unsigned char *get_bitmap_16x16(unsigned char *bitmap_repo, size_t repo_size, un
 int draw_ascii(fb_t *fb, point_t *pt, char c, unsigned int color)
 {
     if (pt->x + 8 > fb->sc_var.xres ||  pt->y + 16 > fb->sc_var.yres) {
-        LOG_DEBUG("invalid position: (%d, %d), font size: 8*16", pt->x, pt->y);
+        LOG_INFO("invalid position: (%d, %d), font size: 8*16", pt->x, pt->y);
         return -1;
     }
 
     // get bitmap
     unsigned char *bitmap = get_ascii_bitmap_8x16(c);
     if (bitmap == NULL) {
-        LOG_DEBUG("No resource of ascii bitmap here!");
+        LOG_INFO("No resource of ascii bitmap here!");
         return -1;
     }
 
@@ -202,7 +202,7 @@ int draw_ascii(fb_t *fb, point_t *pt, char c, unsigned int color)
     pixel_t pixel;
     for (int i = 0; i < 16; i++) {
         _ch = *(bitmap + i);
-        LOG_DEBUG("get value: 0x%02x", _ch);
+        LOG_INFO("get value: 0x%02x", _ch);
         for (int j = 0; j < 8; j++) {
             pixel.pt.x = pt->x + j;
             pixel.pt.y = pt->y + i;
@@ -219,14 +219,14 @@ int draw_ascii(fb_t *fb, point_t *pt, char c, unsigned int color)
 int draw_chinese(fb_t *fb, point_t *pt, unsigned char *code, unsigned int color)
 {
     if (pt->x + 16 > fb->sc_var.xres ||  pt->y + 16 > fb->sc_var.yres) {
-        LOG_DEBUG("invalid position: (%d, %d), out of the screen!", pt->x, pt->y);
+        LOG_INFO("invalid position: (%d, %d), out of the screen!", pt->x, pt->y);
         return -1;
     }
 
     // get bitmap
     unsigned char *bitmap = get_bitmap_16x16(g_hzk_mem, g_hzk_mem_size, code);
     if (bitmap == NULL) {
-        LOG_DEBUG("No resource of ascii bitmap here!");
+        LOG_INFO("No resource of ascii bitmap here!");
         return -1;
     }
 
@@ -236,7 +236,7 @@ int draw_chinese(fb_t *fb, point_t *pt, unsigned char *code, unsigned int color)
     for (int i = 0; i < 16; i++) {
         ch[0] = *(bitmap + i * 2);
         ch[1] = *(bitmap + i * 2 + 1);
-        LOG_DEBUG("get value: 0x%02x 0x%02x", ch[0], ch[1]);
+        LOG_INFO("get value: 0x%02x 0x%02x", ch[0], ch[1]);
         for (int j = 0; j < 16; j++) {
             pixel.pt.x = pt->x + j;
             pixel.pt.y = pt->y + i;
@@ -261,26 +261,26 @@ int main(int argc, char const *argv[])
     // fb初始化
     int ret = fb_init(FB_PATH, &fb);
     if (0 != ret) {
-        LOG_DEBUG("parse basic info of table failed!");
+        LOG_INFO("parse basic info of table failed!");
         return EXIT_FAILURE;
     }
 
     // 打印设备信息
-    LOG_DEBUG("resolution: %d x %d, bpp: %d", fb.sc_var.xres, fb.sc_var.yres, fb.sc_var.bits_per_pixel);
-    LOG_DEBUG("frame buffer size: %ld", (unsigned long)fb.map_size);
+    LOG_INFO("resolution: %d x %d, bpp: %d", fb.sc_var.xres, fb.sc_var.yres, fb.sc_var.bits_per_pixel);
+    LOG_INFO("frame buffer size: %ld", (unsigned long)fb.map_size);
 
     // open character set
     if (g_hzk_mem == NULL || g_hzk_mem_size == 0) {
         g_hzk_mem_size = (unsigned char *)file_mmap(HZK_PATH, -1, PROT_READ, MAP_SHARED, 0, &g_hzk_mem);
         if (g_hzk_mem_size <= 0 || g_hzk_mem == NULL) {
-            LOG_DEBUG("Map %s failed!", HZK16_PATH);
+            LOG_INFO("Map %s failed!", HZK16_PATH);
             return -1;
         }
     }
 
     // try to show gb2313 code
     if (chinese_str1 != NULL && strcmp(chinese_str1, "")) {
-        LOG_DEBUG("chinese_str1: %s", chinese_str1);
+        LOG_INFO("chinese_str1: %s", chinese_str1);
         char result[512] = {0};
         for (int j = 0; j < strlen(chinese_str1); j++) {
             if (j == 0) {
@@ -289,19 +289,19 @@ int main(int argc, char const *argv[])
                 sprintf(result, "%s %02x", result, chinese_str1[j]);
             }
         }
-        LOG_DEBUG("chinese_str1 hex: %s", result);
+        LOG_INFO("chinese_str1 hex: %s", result);
 
         for (int j = 0; j < strlen(chinese_str1); j += CHINESE_BYTES) {
             unsigned char code[CHINESE_BYTES] = {0};
             code[0] = chinese_str1[j];
             code[1] = chinese_str1[j + 1];
-            LOG_DEBUG("get code: 0x%02x 0x%02x", code[0], code[1]);
+            LOG_INFO("get code: 0x%02x 0x%02x", code[0], code[1]);
             
             point_t pt2 = {
                 .x = 50 + (j + 1) * CHINESE_BITMAP_WIDTH  + CHINESE_WORD_SPACE,
                 .y = 50
             };
-            LOG_DEBUG("position: (%d, %d)", pt2.x, pt2.y);
+            LOG_INFO("position: (%d, %d)", pt2.x, pt2.y);
             draw_chinese(&fb, &pt2, code, COLOR_RED);
         }
     }

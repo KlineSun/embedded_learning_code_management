@@ -18,19 +18,19 @@
 int main(int argc, char const *argv[])
 {
 
-    LOG_DEBUG("Enter main!");
+    LOG_INFO("Enter main!");
 
     // init server
     int ret = socket_server_init();
     if (ret != 0) {
-        LOG_DEBUG("Init server failed!");
+        LOG_INFO("Init server failed!");
         return EXCUTE_FAILED_EXIT;
     }
 
     // init client
     ret = socket_client_init();
     if (ret != 0) {
-        LOG_DEBUG("Init client failed!");
+        LOG_INFO("Init client failed!");
         return EXCUTE_FAILED_EXIT;
     }
 

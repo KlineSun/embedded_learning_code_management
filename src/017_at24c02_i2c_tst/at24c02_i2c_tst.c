@@ -35,7 +35,7 @@ int eeprom_write(int fd, const char *buf, int cnt, int offset)
 {
     int ret = 0;
     if (fd <= 0 || !buf || cnt <= 0 || cnt > SMBUS_BLOCK_MAX || offset + cnt > EEPROM_SIZE || offset > 0xff) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
@@ -45,10 +45,10 @@ int eeprom_write(int fd, const char *buf, int cnt, int offset)
         char cmd = offset, val = buf[0];
         ret = offset ? i2c_smbus_write_byte_data(fd, cmd, val) : i2c_smbus_write_byte(fd, val);
         if (ret < 0) {
-            LOG_DEBUG("write byte failed: %d", ret);
+            LOG_INFO("write byte failed: %d", ret);
             return -1;
         }
-        LOG_DEBUG("write single byte at address %d: %c", cmd, val);
+        LOG_INFO("write single byte at address %d: %c", cmd, val);
     } else if (cnt == 2) {
         // byte write
         // i2c_smbus_write_byte_data
@@ -56,19 +56,19 @@ int eeprom_write(int fd, const char *buf, int cnt, int offset)
         memcpy(&val, buf, 2);
         ret = i2c_smbus_write_word_data(fd, offset, val);
         if (ret < 0) {
-            LOG_DEBUG("write word failed: %d", ret);
+            LOG_INFO("write word failed: %d", ret);
             return -1;
         }
-        LOG_DEBUG("write word at address %d: %c%c", offset, val >> 8, val & 0xff);
+        LOG_INFO("write word at address %d: %c%c", offset, val >> 8, val & 0xff);
     } else if (cnt > 2 && cnt < EEPROM_SIZE) {
         // Page Write
         // i2c_smbus_write_i2c_block_data
         int cmd = offset, j = 0;
         for (; cmd < offset + cnt; cmd++, j++) {
-            LOG_DEBUG("cmd=%d, byte: %c", cmd, buf[j]);
+            LOG_INFO("cmd=%d, byte: %c", cmd, buf[j]);
             ret = i2c_smbus_write_byte_data(fd, cmd, buf[j]);
             if (ret < 0) {
-                LOG_DEBUG("write byte failed: %d", ret);
+                LOG_INFO("write byte failed: %d", ret);
                 return -1;
             }
 
@@ -77,9 +77,9 @@ int eeprom_write(int fd, const char *buf, int cnt, int offset)
         }
 
         //int remain = cnt, page_gap = ;
-        LOG_DEBUG("write block at address %d: %s", offset, buf);
+        LOG_INFO("write block at address %d: %s", offset, buf);
     } else {
-        LOG_DEBUG("Unsupported situation!");
+        LOG_INFO("Unsupported situation!");
         return -1;
     }
 
@@ -89,7 +89,7 @@ int eeprom_write(int fd, const char *buf, int cnt, int offset)
 int eeprom_read(int fd, char *buf, int cnt, int offset)
 {
     if (fd <= 0 || !buf || cnt <= 0 || cnt > SMBUS_BLOCK_MAX || offset + cnt > EEPROM_SIZE || offset > 0xff) {
-        LOG_DEBUG("Invalid paramter!");
+        LOG_INFO("Invalid paramter!");
         return -1;
     }
 
@@ -97,23 +97,23 @@ int eeprom_read(int fd, char *buf, int cnt, int offset)
         // current address read / Random Read
         // i2c_smbus_read_byte / i2c_smbus_read_byte_data
         char val = offset ? i2c_smbus_read_byte_data(fd, offset) : i2c_smbus_read_byte(fd);
-        LOG_DEBUG("read single byte at address %d: %c", offset, val);
+        LOG_INFO("read single byte at address %d: %c", offset, val);
     } else if (cnt == 2) {
         // Random Read
         // i2c_smbus_read_word_data
         short val = i2c_smbus_read_word_data(fd, offset);
-        LOG_DEBUG("read word at address %d: %c%c", offset, val >> 8, val & 0xff);
+        LOG_INFO("read word at address %d: %c%c", offset, val >> 8, val & 0xff);
     } else if (cnt > 2 && cnt < EEPROM_SIZE) {
         // Random Read / Sequential Read
         // i2c_smbus_read_i2c_block_data
         int ret = i2c_smbus_read_i2c_block_data(fd, offset, cnt, (__u8 *)buf);
         if (ret != cnt) {
-            LOG_DEBUG("Read block failed: %d", ret);
+            LOG_INFO("Read block failed: %d", ret);
             return -1;
         }
-        LOG_DEBUG("read block at address %d: %s", offset, buf);
+        LOG_INFO("read block at address %d: %s", offset, buf);
     } else {
-        LOG_DEBUG("Unsupported situation!");
+        LOG_INFO("Unsupported situation!");
         return -1;
     }
 
@@ -149,31 +149,31 @@ int main(int argc, const char **argv)
     int io_cnt = 0, offset = 0, slave_addr = 0, fd = 0, ret = 0;
     char io_buf[SMBUS_BLOCK_MAX] = {0};
     bool success = false;
-    LOG_DEBUG("Enter main: %d", argc);
+    LOG_INFO("Enter main: %d", argc);
 
     if (argc < 3) {
-        LOG_DEBUG("usage: ./at24c02_i2c_tst /dev/i2c-x  <-w%%d |-r%%d | -c><@%%x> <-f%%d> [input_data]");
+        LOG_INFO("usage: ./at24c02_i2c_tst /dev/i2c-x  <-w%%d |-r%%d | -c><@%%x> <-f%%d> [input_data]");
         return EXCUTE_FAILED_EXIT;
     }
 
     // gain argument from shell
     if (argc == 4 && !strncmp(argv[OPTR_IDX], "-r", strlen("-r"))) {
-        LOG_DEBUG("Command: read EEPROM!");
+        LOG_INFO("Command: read EEPROM!");
         sscanf(argv[OPTR_IDX], "-r%d@%x", &io_cnt, &slave_addr);
         sscanf(argv[OFFSET_IDX], "-f%d", &offset);
         optr = READ_OPTR;
     } else if (argc == 5 && !strncmp(argv[OPTR_IDX], "-w", strlen("-w"))) {
-        LOG_DEBUG("Command: write EEPROM!");
+        LOG_INFO("Command: write EEPROM!");
         sscanf(argv[OPTR_IDX], "-w%d@%x", &io_cnt, &slave_addr);
         sscanf(argv[OFFSET_IDX], "-f%d", &offset);
         optr = WRITE_OPTR;
     } else if (argc == 3 && !strncmp(argv[OPTR_IDX], "-c", strlen("-c"))) {
         sscanf(argv[OPTR_IDX], "-c@%x", &slave_addr);
-        LOG_DEBUG("Command: clear EEPROM!");
+        LOG_INFO("Command: clear EEPROM!");
         optr = CLEAR_OPTR;
     } else {
-        LOG_DEBUG("Invalid commond!");
-        LOG_DEBUG("usage: ./at24c02_i2c_tst /dev/i2c-x  <-w%%d |-r%%d | -c><@%%x> <-f%%d> [input_data]");
+        LOG_INFO("Invalid commond!");
+        LOG_INFO("usage: ./at24c02_i2c_tst /dev/i2c-x  <-w%%d |-r%%d | -c><@%%x> <-f%%d> [input_data]");
         return EXCUTE_FAILED_EXIT;
     }
 
@@ -182,24 +182,24 @@ int main(int argc, const char **argv)
         || slave_addr < 0x03 || slave_addr > 0x7f
         || access(argv[DEV_PATH_IDX], F_OK) != 0
         || (optr == WRITE_OPTR && strlen(argv[IDATA_IDX]) > SMBUS_BLOCK_MAX)) {
-        LOG_DEBUG("Invalid command paramter!");
-        LOG_DEBUG("usage: ./at24c02_i2c_tst /dev/i2c-x  <-w%%d |-r%%d | -c><@%%x> <-f%%d> [input_data]");
+        LOG_INFO("Invalid command paramter!");
+        LOG_INFO("usage: ./at24c02_i2c_tst /dev/i2c-x  <-w%%d |-r%%d | -c><@%%x> <-f%%d> [input_data]");
         return EXCUTE_FAILED_EXIT;
     }
-    LOG_DEBUG("io_cnt=%d, offset=%d", io_cnt, offset);
-    LOG_DEBUG("i2c-dev-path=%s, slave_addr=0x%x", argv[DEV_PATH_IDX], slave_addr);
+    LOG_INFO("io_cnt=%d, offset=%d", io_cnt, offset);
+    LOG_INFO("i2c-dev-path=%s, slave_addr=0x%x", argv[DEV_PATH_IDX], slave_addr);
 
     // open device
     fd = open(argv[DEV_PATH_IDX], O_RDWR);
     if (fd < 0) {
-        LOG_DEBUG("open dev failed: %s", strerror(errno));
+        LOG_INFO("open dev failed: %s", strerror(errno));
         return EXCUTE_FAILED_EXIT;
     }
 
     // set slave address
     ret = set_slave_addr(fd, slave_addr, 1);
     if (ret != 0) {
-        LOG_DEBUG("Set slave address failed: %d", ret);
+        LOG_INFO("Set slave address failed: %d", ret);
         goto fd_close;
     }
 
@@ -207,11 +207,11 @@ int main(int argc, const char **argv)
     switch (optr)
     {
     case CLEAR_OPTR: {
-        LOG_DEBUG("Clear eeprom!");
+        LOG_INFO("Clear eeprom!");
         for (int i = 0; i < EEPROM_SIZE; i++) {
             int ret = i2c_smbus_write_byte_data(fd, i, 0);
             if (ret < 0) {
-                LOG_DEBUG("write byte failed: %d", ret);
+                LOG_INFO("write byte failed: %d", ret);
                 goto fd_close;
             }
             // write cycle time
@@ -220,23 +220,23 @@ int main(int argc, const char **argv)
         break;
     }
     case WRITE_OPTR: {
-        LOG_DEBUG("Write eeprom!");
+        LOG_INFO("Write eeprom!");
         if (eeprom_write(fd, argv[IDATA_IDX], io_cnt, offset)) {
-            LOG_DEBUG("write eeprom failed!");
+            LOG_INFO("write eeprom failed!");
             goto fd_close;
         }
         break;
     }
     case READ_OPTR: {
-        LOG_DEBUG("Read eeprom!");
+        LOG_INFO("Read eeprom!");
         if (eeprom_read(fd, io_buf, io_cnt, offset)) {
-            LOG_DEBUG("write eeprom failed!");
+            LOG_INFO("write eeprom failed!");
             goto fd_close;
         }
         break;
     }
     default:
-        LOG_DEBUG("UnKown operation: %d", optr);
+        LOG_INFO("UnKown operation: %d", optr);
         break;
     }
     success = true;

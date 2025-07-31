@@ -21,10 +21,10 @@ int config_serial_attr(int fd,
                     )
 {
     if (fd < 0 || speed <= 0 || speed > 921600 || data_bits < 5 || data_bits > 8) {
-        LOG_DEBUG("Invalid parameter!");
+        LOG_INFO("Invalid parameter!");
         return -1;
     }
-    LOG_DEBUG("Terminal setting: %d%c%d %d, %s", data_bits,
+    LOG_INFO("Terminal setting: %d%c%d %d, %s", data_bits,
                                                 verify,
                                                 stop_bits,
                                                 speed,
@@ -33,7 +33,7 @@ int config_serial_attr(int fd,
     // get origin data
     struct termios origin_setting, new_setting;
     if (tcgetattr(fd, &origin_setting)) {
-        LOG_DEBUG("get struct termios failed!");
+        LOG_INFO("get struct termios failed!");
         return -1;
     }
 
@@ -71,7 +71,7 @@ int config_serial_attr(int fd,
             new_setting.c_cflag |= CS5;
             break;
         default :
-            LOG_DEBUG("invalid data bits!");
+            LOG_INFO("invalid data bits!");
             return -1;
     }
 
@@ -92,7 +92,7 @@ int config_serial_attr(int fd,
             new_setting.c_oflag |= (INPCK | ISTRIP);
             break;
         default :
-            LOG_DEBUG("invalid verify mode!");
+            LOG_INFO("invalid verify mode!");
             return -1;
     }
 
@@ -106,7 +106,7 @@ int config_serial_attr(int fd,
             new_setting.c_cflag |= CSTOPB;
             break;
         default :
-            LOG_DEBUG("invalid stop_bits!");
+            LOG_INFO("invalid stop_bits!");
             return -1;
     }
 
@@ -145,7 +145,7 @@ int config_serial_attr(int fd,
 
     // set struct
     if (tcsetattr(fd, TCSANOW, &new_setting)) {
-        LOG_DEBUG("set terminal attributes failed!");
+        LOG_INFO("set terminal attributes failed!");
         return -1;
     }
 
@@ -155,12 +155,12 @@ int config_serial_attr(int fd,
 
 int main(int argc, char const *argv[])
 {
-    LOG_DEBUG("Enter main!");
+    LOG_INFO("Enter main!");
     
     // open device
     int uart_fd = open(STM32_UART8_PATH, O_RDWR | O_NOCTTY);
     if (uart_fd < 0) {
-        LOG_DEBUG("Open tty device failed!");
+        LOG_INFO("Open tty device failed!");
         return EXCUTE_FAILED_EXIT;
     }
 
@@ -168,7 +168,7 @@ int main(int argc, char const *argv[])
     // baud rate, data bits, stop bit, verify bit, raw mode
     // eg: 8N1 115200, raw mode
     if (config_serial_attr(uart_fd, 8, 'N', 1, 115200, true)) {
-        LOG_DEBUG("configurate serial device failed!");
+        LOG_INFO("configurate serial device failed!");
         goto error_exit;
     }
 
@@ -177,20 +177,20 @@ int main(int argc, char const *argv[])
     // get data
     while (1) {
         scanf("%c", &ich);
-        LOG_DEBUG("get char from console: 0x%x %c", ich, ich);
+        LOG_INFO("get char from console: 0x%x %c", ich, ich);
 
         // write to uart8
         if (write(uart_fd, &ich, 1) < 0) {
-            LOG_DEBUG("write char to serial device failed: %s", strerror(errno));
+            LOG_INFO("write char to serial device failed: %s", strerror(errno));
             goto error_exit;
         }
 
         // read data back from uart 8
         if (read(uart_fd, &read_ch, 1) < 0) {
-            LOG_DEBUG("read char from serial device failed: %s", strerror(errno));
+            LOG_INFO("read char from serial device failed: %s", strerror(errno));
             goto error_exit;
         }
-        LOG_DEBUG("read char brack from uart8: 0x%x %c", read_ch, read_ch);
+        LOG_INFO("read char brack from uart8: 0x%x %c", read_ch, read_ch);
     }
 
     // close device

@@ -24,7 +24,7 @@ const char *msg_list[] = {
 static void *socket_client_pthread(void *priv)
 {
     if (g_cln_sock < 0) {
-        LOG_DEBUG("Socket invalid!");
+        LOG_INFO("Socket invalid!");
         return NULL;
     }
 
@@ -32,15 +32,15 @@ static void *socket_client_pthread(void *priv)
     int list_len = sizeof(msg_list) / sizeof(msg_list[0]);
     for (int i = 0; i < list_len; i++) {
         if (send(g_cln_sock, msg_list[i], strlen(msg_list[i]), 0) < strlen(msg_list[i])) {
-            LOG_DEBUG("send  msg to server socket failed: %s", strerror(errno));
+            LOG_INFO("send  msg to server socket failed: %s", strerror(errno));
             continue;
         }
 
         if (recv(g_cln_sock, recv_buf, MAX_SOCKET_MSG_LEN, 0) <= 0) {
-            LOG_DEBUG("receive  msg from server socket failed: %s", strerror(errno));
+            LOG_INFO("receive  msg from server socket failed: %s", strerror(errno));
             continue;
         }
-        LOG_DEBUG("Receive response message from server: %s", recv_buf);
+        LOG_INFO("Receive response message from server: %s", recv_buf);
         sleep(2);
     }
     return NULL;
@@ -51,7 +51,7 @@ int socket_client_init()
     // open socket
     g_cln_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (g_cln_sock < 0) {
-        LOG_DEBUG("open socket failed: %s", strerror(errno));
+        LOG_INFO("open socket failed: %s", strerror(errno));
         return -1;
     }
 
@@ -61,13 +61,13 @@ int socket_client_init()
     svr_addr.sin_family = AF_INET;
     svr_addr.sin_port   = htons(SOCKET_SERVER_PORT);
     if (inet_pton(AF_INET, SOCKET_SERVER_IP, &svr_addr.sin_addr) <= 0) {
-        LOG_DEBUG("inet_pton IP address failed!");
+        LOG_INFO("inet_pton IP address failed!");
         return -1;
     }
 
     // connect
     if (connect(g_cln_sock, (struct sockaddr*)&svr_addr, sizeof(struct sockaddr_in)) != 0) {
-        LOG_DEBUG("Bind socket failed: %s", strerror(errno));
+        LOG_INFO("Bind socket failed: %s", strerror(errno));
         return -1;
     }
 
@@ -75,7 +75,7 @@ int socket_client_init()
     pthread_t tid = -1;
     int ret = pthread_create(&tid, NULL, socket_client_pthread, NULL);
     if (ret != 0 || tid <= 0) {
-        LOG_DEBUG("Create socket monitor thread failed: %s", strerror(errno));
+        LOG_INFO("Create socket monitor thread failed: %s", strerror(errno));
         return -1;
     }
     return 0;

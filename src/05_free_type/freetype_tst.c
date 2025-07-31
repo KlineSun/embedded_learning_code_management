@@ -20,7 +20,7 @@
 int main(int argc, char const *argv[])
 {
 
-    LOG_DEBUG("Enter main!");
+    LOG_INFO("Enter main!");
 
     int font_size = DEFAULT_FONT_SIZE;
     fb_t fb;
@@ -28,7 +28,7 @@ int main(int argc, char const *argv[])
 
     if (argc >= 2) {
         font_size = atoi(argv[1]);
-        LOG_DEBUG("set font size: %d", font_size);
+        LOG_INFO("set font size: %d", font_size);
     }
 
 
@@ -37,7 +37,7 @@ int main(int argc, char const *argv[])
 
     int err = freetype_init(font_size);
     if (err != 0) {
-        LOG_DEBUG("Init freetype failed!");
+        LOG_INFO("Init freetype failed!");
         fb_deinit(&fb);
         return EXCUTE_FAILED_EXIT;
     }
@@ -59,7 +59,7 @@ int main(int argc, char const *argv[])
 
         err = get_freetype_bitmap(chinese_str[i], &b_map);
         if (err != 0 || b_map.buf == NULL) {
-            LOG_DEBUG("Get bitmap failed!");
+            LOG_INFO("Get bitmap failed!");
             break;
         }
 

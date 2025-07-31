@@ -46,57 +46,57 @@ const char* event_bit_names[] = {
 void signal_io_handler(int sig)
 {
     if (sig != SIGIO) {
-        LOG_DEBUG("Not match SIGIO, current signal: %d", sig);
+        LOG_INFO("Not match SIGIO, current signal: %d", sig);
         return;
     }
 
     if (fd < 0) {
-        LOG_DEBUG("Please get dev fd first!");
+        LOG_INFO("Please get dev fd first!");
         return;
     }
 
     struct input_event ev;
     int ret = read(fd, &ev, sizeof(struct input_event));
     if (ret != sizeof(struct input_event)) {
-        LOG_DEBUG("Not match SIGIO, current signal: %d", sig);
+        LOG_INFO("Not match SIGIO, current signal: %d", sig);
         return;
     }
 
-    LOG_DEBUG("signal get type: %hu", ev.type);
-    LOG_DEBUG("signal get code: %hu", ev.code);
-    LOG_DEBUG("signal get value: %d", ev.value);
+    LOG_INFO("signal get type: %hu", ev.type);
+    LOG_INFO("signal get code: %hu", ev.code);
+    LOG_INFO("signal get value: %d", ev.value);
 }
 
 void signal_abort_handler(int sig)
 {
     if (sig != SIGABRT) {
-        LOG_DEBUG("Not match SIGABRT, current signal: %d", sig);
+        LOG_INFO("Not match SIGABRT, current signal: %d", sig);
         return;
     }
 
     if (fd < 0) {
-        LOG_DEBUG("Please get dev fd first!");
+        LOG_INFO("Please get dev fd first!");
         return;
     }
 
     pid_t p = 0;
-    LOG_DEBUG("Process %ld is aborted!", p);
+    LOG_INFO("Process %ld is aborted!", p);
 }
 
 void signal_interrupt_handler(int sig)
 {
     if (sig != SIGINT) {
-        LOG_DEBUG("Not match SIGINT, current signal: %d", sig);
+        LOG_INFO("Not match SIGINT, current signal: %d", sig);
         return;
     }
 
     if (fd < 0) {
-        LOG_DEBUG("Please get dev fd first!");
+        LOG_INFO("Please get dev fd first!");
         return;
     }
 
     pid_t p = getpid();
-    LOG_DEBUG("Process %ld was interrupted!", p);
+    LOG_INFO("Process %ld was interrupted!", p);
 
     // release resources
     close(fd);
@@ -111,7 +111,7 @@ void signal_interrupt_handler(int sig)
 int main(int argc, char const *argv[])
 {
 
-    LOG_DEBUG("Enter main!");
+    LOG_INFO("Enter main!");
     int ret = -1;
 
     /**
@@ -123,58 +123,58 @@ int main(int argc, char const *argv[])
     */
     void (*previous_handler)(int) = signal(SIGIO, signal_io_handler);
     if (previous_handler == SIG_ERR) {
-        LOG_DEBUG("register signal failed!");
+        LOG_INFO("register signal failed!");
         return EXCUTE_FAILED_EXIT;
     }
 
     previous_handler = signal(SIGINT, signal_interrupt_handler);
     if (previous_handler == SIG_ERR) {
-        LOG_DEBUG("register signal failed!");
+        LOG_INFO("register signal failed!");
         return EXCUTE_FAILED_EXIT;
     }
 
     fd = open(INPUT_EVENT0_PATH, O_RDWR);
     if (fd <= 0) {
-        LOG_DEBUG("Open dev %s failed!", INPUT_EVENT0_PATH);
+        LOG_INFO("Open dev %s failed!", INPUT_EVENT0_PATH);
         return EXCUTE_FAILED_EXIT;
     }
 
     int ev_version[8] = {0};
     ret = ioctl(fd, EVIOCGVERSION, ev_version);
     if (ret != 0) {
-        LOG_DEBUG("ioctl dev %s failed!", INPUT_EVENT0_PATH);
+        LOG_INFO("ioctl dev %s failed!", INPUT_EVENT0_PATH);
         close(fd);
         return EXCUTE_FAILED_EXIT;
     }
-    LOG_DEBUG("Get event version: %x", ev_version);
+    LOG_INFO("Get event version: %x", ev_version);
 
     struct input_id id;
     ret = ioctl(fd, EVIOCGID, ev_version, &id);
     if (ret != 0) {
-        LOG_DEBUG("ioctl dev %s failed!", INPUT_EVENT0_PATH);
+        LOG_INFO("ioctl dev %s failed!", INPUT_EVENT0_PATH);
         close(fd);
         return EXCUTE_FAILED_EXIT;
     }
-    LOG_DEBUG("bustype = 0x%x\n", id.bustype );
-    LOG_DEBUG("vendor	= 0x%x\n", id.vendor  );
-    LOG_DEBUG("product = 0x%x\n", id.product );
-    LOG_DEBUG("version = 0x%x\n", id.version );
+    LOG_INFO("bustype = 0x%x\n", id.bustype );
+    LOG_INFO("vendor	= 0x%x\n", id.vendor  );
+    LOG_INFO("product = 0x%x\n", id.product );
+    LOG_INFO("version = 0x%x\n", id.version );
 
     unsigned char evbit[8] = {0};
     ret = ioctl(fd, EVIOCGBIT(0, sizeof(evbit)), &evbit);
     if (ret <= 0 || ret > sizeof(evbit)) {
-        LOG_DEBUG("ioctl dev %s failed!", INPUT_EVENT0_PATH);
+        LOG_INFO("ioctl dev %s failed!", INPUT_EVENT0_PATH);
         close(fd);
         return EXCUTE_FAILED_EXIT;
     }
 
     unsigned char byte_val;
-    LOG_DEBUG("Support event type:", INPUT_EVENT0_PATH);
+    LOG_INFO("Support event type:", INPUT_EVENT0_PATH);
     for (int i = 0; i < sizeof(evbit); i++) {
         for (int j = 0; j < 8; j++) {
             byte_val = evbit[i];
             if (byte_val & (1 << j)) {
-                LOG_DEBUG("%s", event_bit_names[i * 8 + j]);
+                LOG_INFO("%s", event_bit_names[i * 8 + j]);
             }
         }
     }
@@ -192,24 +192,24 @@ int main(int argc, char const *argv[])
     }
     int event_cnt = poll(fds, MAX_INPUT_POLL_EVENT_NUM, 5000);
     if (event_cnt <= 0) {
-        LOG_DEBUG("poll dev %s failed!", INPUT_EVENT0_PATH);
+        LOG_INFO("poll dev %s failed!", INPUT_EVENT0_PATH);
         close(fd);
         return EXCUTE_FAILED_EXIT;
     }
-    LOG_DEBUG("poll dev %s success, event count: %d", INPUT_EVENT0_PATH, event_cnt);
+    LOG_INFO("poll dev %s success, event count: %d", INPUT_EVENT0_PATH, event_cnt);
 
     for (int i = 0; i < event_cnt; i++) {
         struct input_event event;
         ret = read(fd, &event, sizeof(struct input_event));
         if (ret != sizeof(struct input_event)) {
-            LOG_DEBUG("read dev %s failed!", INPUT_EVENT0_PATH);
+            LOG_INFO("read dev %s failed!", INPUT_EVENT0_PATH);
             close(fd);
             return EXCUTE_FAILED_EXIT;
         }
 
-        LOG_DEBUG("event%d type: %hu", i, event.type);
-        LOG_DEBUG("event%d code: %hu", i, event.code);
-        LOG_DEBUG("event%d value: %d", i, event.value);
+        LOG_INFO("event%d type: %hu", i, event.type);
+        LOG_INFO("event%d code: %hu", i, event.code);
+        LOG_INFO("event%d value: %d", i, event.value);
     }*/
 
     while (true) {

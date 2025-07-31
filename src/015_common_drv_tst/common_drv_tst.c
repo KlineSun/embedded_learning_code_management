@@ -63,7 +63,7 @@ typedef union {
 int check_data_format(const char *fmt)
 {
     if (!fmt) {
-        LOG_DEBUG("Invalid parameter!");
+        LOG_INFO("Invalid parameter!");
         return -1;
     }
 
@@ -80,7 +80,7 @@ int check_data_format(const char *fmt)
     } else if (!strcmp(fmt, "%c")) {
         return sizeof(char);
     } else {
-        LOG_DEBUG("Unsupport data format!");
+        LOG_INFO("Unsupport data format!");
         return -1;
     }
 }
@@ -89,13 +89,13 @@ void buf_print(void *buf, const char *fmt, size_t size)
 {
     int type_size = 0, i = 0;
     if (!buf || !fmt) {
-        LOG_DEBUG("Invalid parameter!");
+        LOG_INFO("Invalid parameter!");
         return;
     }
 
     type_size = check_data_format(fmt);
     if (type_size <= 0) {
-        LOG_DEBUG("invalid data format: %s", fmt);
+        LOG_INFO("invalid data format: %s", fmt);
         return;
     }
 
@@ -125,7 +125,7 @@ void buf_print(void *buf, const char *fmt, size_t size)
             printf("%c", *((char *)buf));
             buf += type_size;
         } else {
-            LOG_DEBUG("Unsupport data format: %s", fmt);
+            LOG_INFO("Unsupport data format: %s", fmt);
             return;
         }
     }
@@ -139,7 +139,7 @@ int type_cycle_sscanf(const char* src, void *dest, const char* fmt, size_t cycle
     const char *tmp = src;
     // 判断参数是否有效
     if (!src || !fmt || !dest) {
-        LOG_DEBUG("Invalid parameter!");
+        LOG_INFO("Invalid parameter!");
         return -1;
     }
 
@@ -147,7 +147,7 @@ int type_cycle_sscanf(const char* src, void *dest, const char* fmt, size_t cycle
     type_size = check_data_format(fmt);
     // 判断数据格式是否有效
     if (type_size <= 0 || type_size * cycle_time > MAX_RECV_BUF_SIZE) {
-        LOG_DEBUG("invalid data format: %s", fmt);
+        LOG_INFO("invalid data format: %s", fmt);
         return -1;
     }
 
@@ -157,7 +157,7 @@ int type_cycle_sscanf(const char* src, void *dest, const char* fmt, size_t cycle
         // 使用sscanf函数解析数据
         if (!strcmp(fmt, "%s")) {
             memcpy(dest, tmp, strlen(tmp));
-            LOG_DEBUG("get string: %s", (char *)dest);
+            LOG_INFO("get string: %s", (char *)dest);
             break;
         } else if (!strcmp(fmt, "%d")) {
             if (i == 0) {
@@ -195,7 +195,7 @@ int type_cycle_sscanf(const char* src, void *dest, const char* fmt, size_t cycle
             }
             memcpy(dest + i*type_size, &data.c, type_size);
         } else {
-            LOG_DEBUG("Unsupport data format: %s", fmt);
+            LOG_INFO("Unsupport data format: %s", fmt);
             return -1;
         }
         tmp += n_parsed;
@@ -213,24 +213,24 @@ static void fasync_sig_handler(int signo)
 {
     if (signo == SIGIO) {
         char buf[MAX_RECV_BUF_SIZE] = {0};
-        LOG_DEBUG("Device is ready, start to read device data: fd=%d, len=%d", g_target_fd, fasync_read_cnt);
+        LOG_INFO("Device is ready, start to read device data: fd=%d, len=%d", g_target_fd, fasync_read_cnt);
 
         if (read(g_target_fd, buf, fasync_read_cnt) < 0) {
-            LOG_DEBUG("Read data from device failed: %s", strerror(errno));
+            LOG_INFO("Read data from device failed: %s", strerror(errno));
             return;
         }
-        LOG_DEBUG("read data from driver success: %s", buf);
+        LOG_INFO("read data from driver success: %s", buf);
         fasync_ready = true;
     } else if (signo == SIGTERM) {
-        LOG_DEBUG("receive SIGTERM");
+        LOG_INFO("receive SIGTERM");
     } else {
-        LOG_DEBUG("Unsupport signal: %d", signo);
+        LOG_INFO("Unsupport signal: %d", signo);
     }
 }
 
 int main(int argc, const char **argv)
 {
-    LOG_DEBUG("Enter main: %d", argc);
+    LOG_INFO("Enter main: %d", argc);
 
     int oprt = 0, err = 0;
     int type_size = 0, data_size = 0;
@@ -246,18 +246,18 @@ int main(int argc, const char **argv)
      *  ./common_drv_tst /dev/led_simple_drv -w 1 -int 1
     */
     if (argc < 3) {
-        LOG_DEBUG("Usage: ./common_drv_tst <dev_path> <operation> <data_size> <data_format> [input_data]");
-        LOG_DEBUG("operation:\n-w: write\n-r: read\n-ioctrl: ioctrl\n-p: poll, wait time: %dms\n-fa: fasync", DEFAULT_WAIT_TIME_MS);
+        LOG_INFO("Usage: ./common_drv_tst <dev_path> <operation> <data_size> <data_format> [input_data]");
+        LOG_INFO("operation:\n-w: write\n-r: read\n-ioctrl: ioctrl\n-p: poll, wait time: %dms\n-fa: fasync", DEFAULT_WAIT_TIME_MS);
         printf("-w: write\n-r: read\n-ioctrl: ioctrl\n");
         printf("-p: poll, wait time: %dms\n-fa: fasync\n", DEFAULT_WAIT_TIME_MS);
         printf("-mmap: mmap, usage:\r\n -mmap <data_size> <data_format> [input_data]\r\ninput_data is empty means mmap and read, otherwise means mmap and wirte \n");
-        LOG_DEBUG("data_format:\n%%d: int\n%%f: float\n%%ld: long\n%%lf: double\n%%s: string");
-        LOG_DEBUG("Input_format:\ndata1,data2,data3,...");
+        LOG_INFO("data_format:\n%%d: int\n%%f: float\n%%ld: long\n%%lf: double\n%%s: string");
+        LOG_INFO("Input_format:\ndata1,data2,data3,...");
         return -OPTR_INIT_ERR;
     }
 
     if (access(argv[DEV_PATH_IDX], F_OK) != 0) {
-        LOG_DEBUG("device is not exist: %s", argv[DEV_PATH_IDX]);
+        LOG_INFO("device is not exist: %s", argv[DEV_PATH_IDX]);
         return -OPTR_INIT_ERR;
     }
 
@@ -274,31 +274,31 @@ int main(int argc, const char **argv)
     } else if (!strcmp(argv[OPERATION_IDX], "-mmap")) {
         oprt = OPERATION_MMAP;
     } else {
-        LOG_DEBUG("unsupport operation: %s", argv[OPERATION_IDX]);
+        LOG_INFO("unsupport operation: %s", argv[OPERATION_IDX]);
         return OPTR_INIT_ERR;
     }
 
     // get data size
     data_size = atoi(argv[DATA_SIZE_IDX]);
     if (data_size <= 0 || data_size > MAX_RECV_BUF_SIZE) {
-        LOG_DEBUG("invalid data_size: %s", argv[DATA_SIZE_IDX]);
+        LOG_INFO("invalid data_size: %s", argv[DATA_SIZE_IDX]);
         return OPTR_INIT_ERR;
     }
 
     // check and calculate format size
     type_size = check_data_format(argv[DATA_FORMAT_IDX]);
     if (type_size <= 0 || type_size * data_size > MAX_RECV_BUF_SIZE) {
-        LOG_DEBUG("invalid data format: %s", argv[DATA_FORMAT_IDX]);
+        LOG_INFO("invalid data format: %s", argv[DATA_FORMAT_IDX]);
         return OPTR_INIT_ERR;
     }
 
-    LOG_DEBUG("format=%s, type_size=%d, data_size=%d", argv[DATA_FORMAT_IDX], type_size, data_size);
+    LOG_INFO("format=%s, type_size=%d, data_size=%d", argv[DATA_FORMAT_IDX], type_size, data_size);
 
     // get input data from cmdline
     if (oprt == OPERATION_WRITE || oprt == OPERATION_IOCTRL
         || (oprt == OPERATION_MMAP && argc > INPUT_DATA_IDX)) {
         if (type_cycle_sscanf(argv[INPUT_DATA_IDX], data_buf, argv[DATA_FORMAT_IDX], data_size)) {
-            LOG_DEBUG("sscanf input string failed: %s", argv[DATA_FORMAT_IDX]);
+            LOG_INFO("sscanf input string failed: %s", argv[DATA_FORMAT_IDX]);
             return OPTR_INIT_ERR;
         }
     }
@@ -306,7 +306,7 @@ int main(int argc, const char **argv)
     // open
     g_target_fd = open(argv[DEV_PATH_IDX], O_RDWR);
     if (g_target_fd < 0) {
-        LOG_DEBUG("open dev %s failed: %s", argv[DEV_PATH_IDX], strerror(errno));
+        LOG_INFO("open dev %s failed: %s", argv[DEV_PATH_IDX], strerror(errno));
         err = OPTR_OPEN_ERR;
         goto res_free;
     }
@@ -314,14 +314,14 @@ int main(int argc, const char **argv)
     // operate
     if (oprt == OPERATION_WRITE) {
         if (write(g_target_fd, data_buf, type_size * data_size) < 0) {
-            LOG_DEBUG("write data to dev %s failed: %s", argv[DEV_PATH_IDX], strerror(errno));
+            LOG_INFO("write data to dev %s failed: %s", argv[DEV_PATH_IDX], strerror(errno));
             err = OPTR_WRITE_ERR;
             goto res_free;
         }
-        LOG_DEBUG("write data to device success!");
+        LOG_INFO("write data to device success!");
     } else if (oprt == OPERATION_READ) {
         if (read(g_target_fd, data_buf, MIN(MAX_RECV_BUF_SIZE, data_size * type_size)) < 0) {
-            LOG_DEBUG("read data from dev %s failed: %s", argv[DEV_PATH_IDX], strerror(errno));
+            LOG_INFO("read data from dev %s failed: %s", argv[DEV_PATH_IDX], strerror(errno));
             err = OPTR_READ_ERR;
             goto res_free;
         }
@@ -333,13 +333,13 @@ int main(int argc, const char **argv)
         pfd.fd = g_target_fd;
         pfd.events = POLLIN | POLLRDNORM;
         if (poll(&pfd, 1, DEFAULT_WAIT_TIME_MS) <= 0) {
-            LOG_DEBUG("poll dev %s failed!", argv[DEV_PATH_IDX]);
+            LOG_INFO("poll dev %s failed!", argv[DEV_PATH_IDX]);
             err = OPTR_POLL_ERR;
             goto res_free;
         }
 
         if (read(g_target_fd, data_buf, MIN(MAX_RECV_BUF_SIZE, data_size * type_size)) < 0) {
-            LOG_DEBUG("read data from dev %s failed: %s", argv[DEV_PATH_IDX], strerror(errno));
+            LOG_INFO("read data from dev %s failed: %s", argv[DEV_PATH_IDX], strerror(errno));
             err = OPTR_READ_ERR;
             goto res_free;
         }
@@ -352,7 +352,7 @@ int main(int argc, const char **argv)
         act.sa_flags = 0;
 
         if (sigaction(SIGIO, &act, NULL) < 0 || sigaction(SIGTERM, &act, NULL) < 0) {
-            LOG_DEBUG("Call sigaction failed!");
+            LOG_INFO("Call sigaction failed!");
             err = OPTR_SIGNAL_ERR;
             goto res_free;
         }
@@ -363,31 +363,31 @@ int main(int argc, const char **argv)
         fasync_read_cnt = MIN(MAX_RECV_BUF_SIZE, data_size * type_size);
         for (;;) {
             if (fasync_ready) {
-                LOG_DEBUG("fasync msg is handled");
+                LOG_INFO("fasync msg is handled");
                 fasync_ready = false;
             }
 
-            LOG_DEBUG("Doing something in main, fd=%d", g_target_fd);
+            LOG_INFO("Doing something in main, fd=%d", g_target_fd);
             sleep(2);
         }
     } else if (oprt == OPERATION_MMAP) {
         char *mmap_buf = (char *)mmap(NULL, MAX_RECV_BUF_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, g_target_fd, 0);
         if (mmap_buf == MAP_FAILED) {
-            LOG_DEBUG("mmap failed: %s", strerror(errno));
+            LOG_INFO("mmap failed: %s", strerror(errno));
             err = OPTR_MMAP_ERR;
             goto res_free;
         }
 
-        LOG_DEBUG("mmap kernel buf at address: %p", mmap_buf);
+        LOG_INFO("mmap kernel buf at address: %p", mmap_buf);
         if (!strcmp(data_buf, "")) {
             char recv_buf[MAX_RECV_BUF_SIZE] = {0};
             // strncpy(recv_buf, mmap_buf, data_size);
             memcpy(recv_buf, mmap_buf, data_size);
-            LOG_DEBUG("read data from mmap buf: %s", recv_buf);
+            LOG_INFO("read data from mmap buf: %s", recv_buf);
         } else {
             // strncpy(mmap_buf, data_buf, data_size);
             memcpy(mmap_buf, data_buf, data_size);
-            LOG_DEBUG("write data to mmap buf: %s", data_buf);
+            LOG_INFO("write data to mmap buf: %s", data_buf);
         }
 
         for (;;) {
@@ -395,7 +395,7 @@ int main(int argc, const char **argv)
         }
         munmap(mmap_buf, MAX_RECV_BUF_SIZE);
     } else {
-        LOG_DEBUG("Unknown operation: %d", oprt);
+        LOG_INFO("Unknown operation: %d", oprt);
         err = OPTR_INIT_ERR;
         goto res_free;
     }

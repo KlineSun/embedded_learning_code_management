@@ -21,7 +21,7 @@
 int main(int argc, char const *argv[])
 {
 
-    LOG_DEBUG("Enter main!");
+    LOG_INFO("Enter main!");
 
     struct tsdev *ts = NULL;
     int slot_num = 0, ret = -1;
@@ -31,7 +31,7 @@ int main(int argc, char const *argv[])
 
     ts = ts_setup(NULL, 0);
     if (!ts) {
-        LOG_DEBUG("tsdev setup faied!");
+        LOG_INFO("tsdev setup faied!");
         return EXCUTE_FAILED_EXIT;
     }
 
@@ -40,7 +40,7 @@ int main(int argc, char const *argv[])
     smp = (struct ts_sample_mt *)calloc(slot_num, sizeof(struct ts_sample_mt));
     local_smp = (struct ts_sample_mt *)calloc(slot_num, sizeof(struct ts_sample_mt));
     if (smp == NULL || local_smp == NULL) {
-        LOG_DEBUG("calloc faied!");
+        LOG_INFO("calloc faied!");
         return EXCUTE_FAILED_EXIT;
     }
 
@@ -51,7 +51,7 @@ int main(int argc, char const *argv[])
         // 采样
         ret = ts_read_mt(ts, &smp, slot_num, 1);
         if (ret <= 0) {
-            LOG_DEBUG("read mt result failed!");
+            LOG_INFO("read mt result failed!");
             break;
         }
 
@@ -60,7 +60,7 @@ int main(int argc, char const *argv[])
         for (int i = 0; i < slot_num; i++) {
             if (smp[i].valid != 0 /* && smp[i].pen_down == 1 */ ) {
                 finger_cnt++;
-                LOG_DEBUG("slot%d is touching on (%d, %d), pres: %d, tracking_id: %d.",
+                LOG_INFO("slot%d is touching on (%d, %d), pres: %d, tracking_id: %d.",
                         smp[i].slot, smp[i].x, smp[i].y, smp[i].pressure, smp[i].tracking_id);
                 finger_flag |= (smp[i].pressure != 0) << i;
                 
@@ -69,7 +69,7 @@ int main(int argc, char const *argv[])
                     double distance_x = smp[i].x - smp[i - 1].x;
                     double distance_y = smp[i].y - smp[i - 1].y;
                     distance = sqrt(distance_x * distance_x + distance_y * distance_y);
-                    LOG_DEBUG("distance between slot%d and slot%d is %lf.", i-1, i, distance);
+                    LOG_INFO("distance between slot%d and slot%d is %lf.", i-1, i, distance);
                 }
             }
 
@@ -78,13 +78,13 @@ int main(int argc, char const *argv[])
         }
 
         if (!finger_flag) {
-            LOG_DEBUG("All finger moved out!");
+            LOG_INFO("All finger moved out!");
             break;
         }
     } while (true);
 
     if (ts_close(ts)) {
-        LOG_DEBUG("tsdev setup faied!");
+        LOG_INFO("tsdev setup faied!");
         free(smp);
         return EXCUTE_FAILED_EXIT;
     }

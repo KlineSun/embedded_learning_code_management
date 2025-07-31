@@ -16,11 +16,11 @@
 int read_gps_raw_data(int fd, char *buf, int len)
 {
     if (fd <0 || !buf || len <= 0) {
-        LOG_DEBUG("Invalid parameter!");
+        LOG_INFO("Invalid parameter!");
         return -1;
     }
 
-    LOG_DEBUG("Enter!");
+    LOG_INFO("Enter!");
     char recv_pool[MAX_GPS_RAW_DATA_LEN] = {0};
     char iCh = 0;
     /**
@@ -32,11 +32,11 @@ int read_gps_raw_data(int fd, char *buf, int len)
     int i = 0;
     while (1) {
         if (read(fd, &iCh, 1) < 0) {
-            LOG_DEBUG("read failed: %s", strerror(errno));
+            LOG_INFO("read failed: %s", strerror(errno));
             return -1;
         }
 
-        // LOG_DEBUG("read ch: %c 0x%x", iCh, iCh);
+        // LOG_INFO("read ch: %c 0x%x", iCh, iCh);
         if (iCh == '$') {
             valid_field = 1;
         } else if (valid_field == 1 && (iCh == '\r' || iCh == '\n')) {
@@ -45,28 +45,28 @@ int read_gps_raw_data(int fd, char *buf, int len)
 
         if (valid_field == 1) {
             if (i >= MAX_GPS_RAW_DATA_LEN) {
-                LOG_DEBUG("Data too long!");
+                LOG_INFO("Data too long!");
                 return -1;
             }
             recv_pool[i++] = iCh;
         } else if (valid_field == 0) {
             recv_pool[i] = '\0';
-            LOG_DEBUG("receive a frame of raw data end!");
+            LOG_INFO("receive a frame of raw data end!");
             break;
         } else{
-            LOG_DEBUG("Invalid ch: %c 0x%x", iCh, iCh);
+            LOG_INFO("Invalid ch: %c 0x%x", iCh, iCh);
             continue;
         }
 
     }
 
     if (valid_field < 0 || i <= 1) {
-        LOG_DEBUG("connot get gps data from uart!");
+        LOG_INFO("connot get gps data from uart!");
         return -1;
     }
 
     if (i > len) {
-        LOG_DEBUG("Data too long!");
+        LOG_INFO("Data too long!");
         return -1;
     }
     memcpy(buf, recv_pool, i);
@@ -102,41 +102,41 @@ const char *g_gps_msg_table[] = {
 void *gps_data_send_thread(void *priv)
 {
     if (!priv) {
-        LOG_DEBUG("input fd is null!");
+        LOG_INFO("input fd is null!");
         return NULL;
     }
     pthread_detach(pthread_self());
 
     int fd = *((int *)priv);
-    LOG_DEBUG("get uart fd: %d", fd);
+    LOG_INFO("get uart fd: %d", fd);
     if (fd <= 0) {
-        LOG_DEBUG("fd is invalid!");
+        LOG_INFO("fd is invalid!");
         return NULL;
     }
 
     while (1) {
         for (int i = 0; i < LIST_LEN(g_gps_msg_table); i++) {
             if (write(fd, g_gps_msg_table[i], strlen(g_gps_msg_table[i])) <= 0) {
-                LOG_DEBUG("write gps data to uart failed: %s", g_gps_msg_table[i]);
+                LOG_INFO("write gps data to uart failed: %s", g_gps_msg_table[i]);
             }
             sleep(2);
         }
     }
 
-    LOG_DEBUG("Send endding!");
+    LOG_INFO("Send endding!");
     return NULL;
 }
 
 int main(int argc, char const *argv[])
 {
-    LOG_DEBUG("Enter main!");
+    LOG_INFO("Enter main!");
 
 
     
     // open device
     int uart_fd = open(STM32_UART8_PATH, O_RDWR | O_NOCTTY);
     if (uart_fd < 0) {
-        LOG_DEBUG("Open tty device failed!");
+        LOG_INFO("Open tty device failed!");
         return EXCUTE_FAILED_EXIT;
     }
 
@@ -144,14 +144,14 @@ int main(int argc, char const *argv[])
     // baud rate, data bits, stop bit, verify bit, raw mode
     // eg: 8N1 115200, raw mode
     if (config_uart_attr(uart_fd, 8, 'N', 1, 9600, true)) {
-        LOG_DEBUG("configurate serial device failed!");
+        LOG_INFO("configurate serial device failed!");
         goto error_exit;
     }
 
     // test thread
     pthread_t tid;
     if (pthread_create(&tid, NULL, gps_data_send_thread, (void *)&uart_fd)) {
-        LOG_DEBUG("create sending thread failed!");
+        LOG_INFO("create sending thread failed!");
         goto error_exit;
     }
 
@@ -161,16 +161,16 @@ int main(int argc, char const *argv[])
         // read gps data from uart
         int ret = read_gps_raw_data(uart_fd, gps_raw_data, MAX_GPS_RAW_DATA_LEN);
         if (ret <= 0) {
-            LOG_DEBUG("get raw data from GPS failed!");
+            LOG_INFO("get raw data from GPS failed!");
             goto error_exit;
         }
 
-        LOG_DEBUG("Get gps raw data: %s", gps_raw_data);
+        LOG_INFO("Get gps raw data: %s", gps_raw_data);
 
         // parse gps raw data
         gps_info_type t = parse_gps_raw_data(gps_raw_data, &common_info);
         if (t == GPS_INVALID_TYPE) {
-            LOG_DEBUG("parse gps raw data failed!");
+            LOG_INFO("parse gps raw data failed!");
             continue;
         }
     }
