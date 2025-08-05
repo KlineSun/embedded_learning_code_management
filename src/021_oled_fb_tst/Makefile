@@ -13,9 +13,10 @@ LOCAL_C_SRC += $(COMMON_SRC_FILES)
 UTILS_DIR_PATH := $(UTILS_ROOT_PATH)/screen
 CFLAGS += $(foreach dir,$(UTILS_DIR_PATH), -I $(dir))
 LOCAL_C_SRC += $(foreach dir,$(UTILS_DIR_PATH),$(shell find "$(dir)" -type f \( -name "*.c" -o -name "*.cpp" -o -name "*.S" \)))
+# LOCAL_C_SRC += $(shell find "$(UTILS_ROOT_PATH)/i2c" -type f \( -name "*.c" -o -name "*.cpp" -o -name "*.S" \))
 
 CFLAGS += -lfreetype -lm
-LOCAL_TARGET := freetype_tst
+LOCAL_TARGET := oled_fb_tst
 LOCAL_BUILD_TYPE := ARM_BUILD
 
 # define dependency

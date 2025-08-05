@@ -1,7 +1,11 @@
 #ifndef FREETYPE_UTIL_H
 #define FREETYPE_UTIL_H
 
-#include "fb_util.h"
+#include "ft2build.h"
+#include FT_FREETYPE_H
+#include FT_GLYPH_H
+#include FT_MODULE_H
+#include FT_CONFIG_CONFIG_H
 
 #define DEFAULT_FONT_SIZE (32)
 
@@ -17,7 +21,8 @@
 typedef unsigned int ft_code_t;
 
 int freetype_init(int font_size);
-int get_freetype_bitmap(FT_Face face, ft_code_t code, bitmap_t *bp);
-int ft_rotate_transfer(float rota_angle, point_t *pp);
+int get_freetype_bitmap(FT_Face face, ft_code_t code, FT_Bitmap *bp);
+int ft_rotate_transfer(float rota_angle, FT_Vector *pp);
+void print_FT_Bitmap(FT_Bitmap *bitmap);
 
 #endif //FREETYPE_UTIL_H

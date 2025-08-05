@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include "common_util.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -10,45 +9,52 @@
 #include <errno.h>
 #include "fb_util.h"
 
-
 int fb_init(const char *fb_path, fb_t *fb)
 {
+    int ret = 0, fd = 0;
+    u_8bit_t *mmap_ptr = NULL;
     if (fb_path == NULL || fb == NULL) {
         LOG_INFO("Invalid parameter!");
         return -1;
     }
     // 打开设备文件
-    int fd = open(fb_path, O_RDWR);
+    fd = open(fb_path, O_RDWR);
     if (fd < 0) {
         LOG_INFO("open framebuffer device failed");
         return -1;
     }
 
     // 获取设备信息
-    int ret = ioctl(fd, FBIOGET_VSCREENINFO, &(fb->sc_var));
+    ret = ioctl(fd, FBIOGET_VSCREENINFO, &(fb->sc_var));
     if (ret < 0) {
-        LOG_INFO("get variable screen info failed");
+        LOG_INFO("get variable screen info failed: %s", strerror(errno));
         close(fd);
         return -1;
     }
 
-    fb->pixel_bs = fb->sc_var.bits_per_pixel / 8;
-    fb->map_size = fb->sc_var.xres * fb->sc_var.yres * fb->pixel_bs;
-    fb->line_bs  = fb->sc_var.xres * fb->pixel_bs;
+    ret = ioctl(fd, FBIOGET_FSCREENINFO, &(fb->sc_fix));
+    if (ret < 0) {
+        LOG_INFO("get variable screen info failed: %s", strerror(errno));
+        close(fd);
+        return -1;
+    }
 
-    LOG_INFO("pixel_bs: %d, map_size: %d, line_bs: %d", fb->pixel_bs, (int)fb->map_size, fb->line_bs);
+    LOG_INFO("xres=%u, yres=%u, bpp=%u\n", fb->sc_var.xres, fb->sc_var.yres, fb->sc_var.bits_per_pixel);
+    // fb->map_size = fb->sc_fix.smem_len;
+    fb->map_size = fb->sc_var.xres * fb->sc_var.yres * fb->sc_var.bits_per_pixel / 8;
+    LOG_INFO("map_size: %d, line_length: %d", fb->map_size, fb->sc_fix.line_length);
 
     // 获取设备内存
-    u_8bit_t *mmap_ptr = (u_8bit_t *)mmap(NULL, fb->map_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    mmap_ptr = (u_8bit_t *)mmap(NULL, fb->map_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (mmap_ptr <= 0 || mmap_ptr == MAP_FAILED) {
-        LOG_INFO("mmap framebuffer device failed");
+        LOG_INFO("mmap framebuffer device failed: %s", strerror(errno));
         close(fd);
         return -1;
     }
 
     // clear
     memset(mmap_ptr, 0, fb->map_size);
-    fb->map_ptr = mmap_ptr;
+    fb->map_ptr = (unsigned char *)mmap_ptr;
 
     // 关闭设备文件
     close(fd);
@@ -74,28 +80,43 @@ void fb_fill(fb_t *fb, size_t fill_size, size_t offset, u_8bit_t byte_value)
     memset(fb->map_ptr + offset, byte_value, fill_size);
 }
 
-int draw_pixel(fb_t *fb, point_t *pp, COLOR_T color)
+int draw_pixel(fb_t *fb, FT_Vector *sc_pos, COLOR_T color)
 {
-    if (fb == NULL || pp == NULL) {
+    unsigned char *addr_8 = NULL;
+    unsigned short *addr_16 = NULL;
+    unsigned int *addr_32 = NULL;
+    int bit_offset;
+    unsigned int red = 0, green = 0, blue = 0, comb_color = 0;
+    if (fb == NULL || sc_pos == NULL) {
         LOG_INFO("Invalid parameter!");
         return -1;
     }
 
-    if (pp->x > fb->sc_var.xres ||  pp->y > fb->sc_var.yres) {
-        LOG_INFO("invalid position: (%d, %d)", pp->x, pp->y);
+    if (sc_pos->x > fb->sc_var.xres ||  sc_pos->y > fb->sc_var.yres) {
+        LOG_INFO("invalid position: (%ld, %ld)", sc_pos->x, sc_pos->y);
         return -1;
     }
 
-    u_8bit_t *addr_8   = fb->map_ptr + pp->y * fb->line_bs + pp->x * fb->pixel_bs;
-    unsigned short *addr_16 = (unsigned short *)addr_8;
-    unsigned int *addr_32   = (unsigned int *)addr_8;
-    unsigned int red = 0, green = 0, blue = 0, comb_color = 0;
+    if ((fb->sc_var.bits_per_pixel % 8) == 0) {
+        addr_8   = fb->map_ptr + sc_pos->y * fb->sc_fix.line_length + sc_pos->x/8;
+    } else {
+        addr_8   = fb->map_ptr + sc_pos->y * fb->sc_fix.line_length + sc_pos->x/8;
+        bit_offset = 7 - sc_pos->x % 8;
+        // if (sc_pos->x % 8)
+        //     addr_8++; // 如果有位偏移，则指向下一个字节
+    }
 
     switch (fb->sc_var.bits_per_pixel) {
+        case 1: {
+            *addr_8 |= (1 << bit_offset); // 给字节对应位置为1，表示点亮即可，无需设置颜色
+            // printf("0x%x ", *addr_8);
+            break;
+        }
         case 8:
             *addr_8 = color;
             break;
         case 16:
+            addr_16 = (unsigned short *)addr_8;
             // 565
             red   = (color >> 16) & 0xff;
             green = (color >> 8)  & 0xff;
@@ -106,6 +127,7 @@ int draw_pixel(fb_t *fb, point_t *pp, COLOR_T color)
             *addr_16 = comb_color;
             break;
         case 32:
+            addr_32   = (unsigned int *)addr_8;
             *addr_32 = color;
             break;
         default:
@@ -115,35 +137,30 @@ int draw_pixel(fb_t *fb, point_t *pp, COLOR_T color)
     return 0;
 }
 
-int draw_bitmap(fb_t *fb, bitmap_t *b_map, point_t *pp, COLOR_T color)
+int draw_bitmap(fb_t *fb, FT_Bitmap *b_map, FT_Vector *sc_pos, COLOR_T color)
 {
-    if (fb == NULL || b_map == NULL || pp == NULL) {
-        LOG_INFO("invalid position: (%d, %d)", pp->x, pp->y);
+    FT_Vector pen;
+    int offset = 0;
+    int i = 0, j = 0;
+    if (fb == NULL || b_map == NULL || sc_pos == NULL) {
+        LOG_INFO("invalid position: (%ld, %ld)", sc_pos->x, sc_pos->y);
         return -1;
     }
 
-    int x_max = pp->x + b_map->width;
-    int y_max = pp->y + b_map->rows;
-
-    // LOG_INFO("x range: (%d, %d)", pp->x, x_max);
-    // LOG_INFO("y range: (%d, %d)", pp->y, y_max);
-    // LOG_INFO("pitch: %d", b_map->pitch);
-
     // One byte corresponds to one pixel
-    point_t pen;
-    int offset = 0;
-    for (int i = 0; i < b_map->width; i++) {
-        // pos x
-        pen.x = pp->x + i;
-        for (int j = 0; j < b_map->rows; j++) {
-            // pos y
-            pen.y = pp->y + j;
+
+    // print_FT_Bitmap(b_map);
+    for (j = 0; j < b_map->rows; j++) {
+        for (i = 0; i < b_map->width; i++) {
+            pen.x = sc_pos->x + i;
+            pen.y = sc_pos->y + j;
             if (pen.x > fb->sc_var.xres || pen.y > fb->sc_var.yres) {
-                //LOG_INFO("pixel position out of the range!");
-                continue;
+                // LOG_INFO("position (%ld, %ld) out of the range!", pen.x, pen.y);
+                break;
             }
 
             offset = j * b_map->pitch + i;
+            // LOG_INFO("(%d, %d), offset=%d, pitch=%d", i, j, offset, b_map->pitch);
             if (b_map->buffer[offset] != 0) {
                 draw_pixel(fb, &pen, color);
             }
@@ -153,74 +170,40 @@ int draw_bitmap(fb_t *fb, bitmap_t *b_map, point_t *pp, COLOR_T color)
     return 0;
 }
 
-/*
-int draw_ascii(fb_t *fb, point_t *pt, char c, unsigned int color)
+void print_fb(fb_t *fb)
 {
-    if (pt->x + 8 > fb->sc_var.xres ||  pt->y + 16 > fb->sc_var.yres) {
-        LOG_INFO("invalid position: (%d, %d), font size: 8*16", pt->x, pt->y);
-        return -1;
+    int x = 0, y = 0;
+    unsigned int byte_idx = 0, bit_offset = 0, bpp = 0;
+    char *line_buf = NULL;
+    bool bit_offset_flg = false;
+    bool pixel_active = false;
+    unsigned char *pen = NULL;
+    if (!fb) {
+        LOG_ERR("Invalid parameter!");
+        return;
     }
 
-    // get bitmap
-    u_8bit_t *bitmap = get_ascii_bitmap_8x16(c);
-    if (bitmap == NULL) {
-        LOG_INFO("No resource of ascii bitmap here!");
-        return -1;
+    line_buf = malloc(fb->sc_var.xres + 1); // 逐行输出，因此申请一行的内存即可
+    if (!line_buf) {
+        LOG_ERR("Alloc bitmap print memory failed!");
+        return;
     }
 
-    // draw bitmap
-    u_8bit_t _ch = '\0';
-    point_t _pt;
-    for (int i = 0; i < 16; i++) {
-        _ch = *(bitmap + i);
-        LOG_INFO("get value: 0x%02x", _ch);
-        for (int j = 0; j < 8; j++) {
-            _pt.x = pt->x + j;
-            _pt.y = pt->y + i;
-            if (_ch & (0x80 >> j)) {
-                draw_pixel(fb, &_pt, color);
-            }
+    bpp = fb->sc_var.bits_per_pixel;
+    bit_offset_flg = bpp % 8 ? true : false;
+    printf("fb(%u*%u), flag=%d:\n", fb->sc_var.xres, fb->sc_var.yres, bit_offset_flg);
+    for (y = 0; y < fb->sc_var.yres; y++) {
+        for (x = 0; x < fb->sc_var.xres; x++) {
+            byte_idx = y * fb->sc_fix.line_length + x * bpp / 8;
+            pen = fb->map_ptr + byte_idx;
+            bit_offset = 7 - x * bpp % 8;
+
+            pixel_active = bit_offset_flg ? (*pen & (1 << bit_offset)) : (*pen != 0);
+            line_buf[x] = pixel_active ? 0x2a : 0x2e;
         }
+        line_buf[fb->sc_var.xres] = '\0';
+        printf("\t%s\n", line_buf);
+        memset(line_buf, 0, fb->sc_var.xres+1);
     }
-
-    return 0;
+    free(line_buf);
 }
-
-int draw_chinese(fb_t *fb, point_t *pt, u_8bit_t *code, unsigned int color)
-{
-    if (pt->x + 16 > fb->sc_var.xres ||  pt->y + 16 > fb->sc_var.yres) {
-        LOG_INFO("invalid position: (%d, %d), out of the screen!", pt->x, pt->y);
-        return -1;
-    }
-
-    // get bitmap
-    u_8bit_t *bitmap = get_bitmap_16x16(fb->map_ptr, fb->map_size, code);
-    if (bitmap == NULL) {
-        LOG_INFO("No resource of ascii bitmap here!");
-        return -1;
-    }
-
-    // draw bitmap
-    u_8bit_t ch[CHINESE_BYTES] = {0};
-    point_t _pt;
-    for (int i = 0; i < 16; i++) {
-        ch[0] = *(bitmap + i * 2);
-        ch[1] = *(bitmap + i * 2 + 1);
-        LOG_INFO("get value: 0x%02x 0x%02x", ch[0], ch[1]);
-        for (int j = 0; j < 16; j++) {
-            _pt.x = pt->x + j;
-            _pt.y = pt->y + i;
-            if (j < 8 && (ch[0] & (0x80 >> j))) {
-                draw_pixel(fb, &_pt, color);
-            } else if (j >= 8 && (ch[1] & (0x80 >> (j - 8)))) {
-                draw_pixel(fb, &_pt, color);
-            }
-        }
-
-        memset(ch, 0, CHINESE_BYTES);
-    }
-
-    return 0;
-}
-*/
-
