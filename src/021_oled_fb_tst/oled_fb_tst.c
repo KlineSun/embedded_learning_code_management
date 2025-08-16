@@ -91,17 +91,17 @@ void print_usage()
  * -angel%%d：表示要使字体旋转的角度
  * 
  *  exp:
- *  ./oled_fb_tst /dev/fb1
+ *  
  *  ./oled_fb_tst /dev/fb1 -px8y16 -size32 -angle30
  * 
 */
 int main(int argc, const char **argv)
 {
-    int font_size = DEFAULT_FONT_SIZE, angle = 0, start_x = 0, start_y = 0;
+    int font_size = 24, angle = 0, start_x = 0, start_y = 0;
     int extend_idx = DEV_PATH_IDX + 1;
     bool is_success = false;
     fb_t fb;
-    wchar_t chinese_str[64] = L"Kline.Sun";
+    wchar_t chinese_str[64] = L"一二爱布布";
     FT_Library ft_lib = NULL;
     FT_Face ft_face = NULL;
     int err = 0;
