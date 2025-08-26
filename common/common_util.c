@@ -230,3 +230,28 @@ int write_file_string(const char *path, char *buf, size_t len)
     LOG_DEBUG("Write string \"%s\" into %s, ret =%d", buf, path, ret);
     return ret;
 }
+
+int fill_random_value(int nums[], int max, int min, int size)
+{
+    int i = 0;
+
+    if (!nums || size <= 0) {
+        LOG_DEBUG("Invalid parameter!");
+        return -1;
+    }
+
+    srand(time(NULL));
+    for (i = 0; i < size; i++) {
+        nums[i] = rand() % (max - min + 1) + min;
+    }
+    return size;
+}
+
+void print_int_array(int num[], int size)
+{
+    printf("array: ");
+    for (int i = 0; i < size; i++) {
+        printf("%d ", num[i]);
+    }
+    printf("\n");
+}

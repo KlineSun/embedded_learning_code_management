@@ -1,7 +1,9 @@
 # 根目录mk文件，定义全局的编译变量
 CC := gcc
+CXX := g++
 AR := ar
 RANLIB := ranlib
+OBJDUMP := objdump
 
 export CC AR RANLIB
 
@@ -18,13 +20,18 @@ UTIL_SCREEN_PATH   	:= $(UTILS_ROOT_PATH)/screen
 
 # 编译标志
 CFLAGS := -Wall -O2 -g
+CXXFLAGS := -lstdc++
 CFLAGS += $(foreach dir,$(COMMON_LIB_PATH),-L $(dir))
 CFLAGS += $(foreach dir,$(COMMON_INCLUE_PATH),-I $(dir))
+# $(info root CFLAGS: $(CFLAGS))
 
 COMMON_SRC_FILES := $(shell find $(MY_PROJECT_ROOT)/common -name '*.c')
 COMMON_DEP_OBJS  := $(patsubst %.c,%.o,$(COMMON_SRC_FILES))
 # 链接标志
 LDFLAGS := -lm
+
+# 汇编标志
+ASFLAGS := 
 
 RESOURCE_TARGET_DIR := ~/resource
 RESOURCE_SOUCE_FILES := $(MY_PROJECT_ROOT)/res/*

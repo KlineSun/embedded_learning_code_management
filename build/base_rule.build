@@ -1,0 +1,69 @@
+
+# include common source files
+
+ifeq ($(V),1)
+    Q :=
+else
+    Q := @
+endif
+
+ASAN ?= 0
+$(info ASAN: $(ASAN))
+ifeq ($(ASAN), 1)
+	CFLAGS += -fsanitize=address -DENABLE_ASAN # 检查内存泄漏
+endif
+
+LOCAL_C_SRC += $(COMMON_SRC_FILES)
+CXXFLAGS += $(CFLAGS)
+
+# define dependency
+LOCAL_DEP_OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(LOCAL_C_SRC))) \
+					$(patsubst %.cpp,%.o,$(filter %.cpp,$(LOCAL_C_SRC))) \
+					$(patsubst %.S,%.o,$(filter %.S,$(LOCAL_C_SRC)))
+
+ifeq ($(LOCAL_BUILD_TYPE), ARM_BUILD)
+	CC := $(ARM_BUILD_PREFIX)$(CC)
+	AR := $(ARM_BUILD_PREFIX)$(AR)
+	RANLIB := $(ARM_BUILD_PREFIX)$(RANLIB)
+	OBJDUMP := $(ARM_BUILD_PREFIX)$(OBJDUMP)
+endif
+
+ifneq ($(filter %.cpp,$(LOCAL_C_SRC)), )
+	LDFLAGS += -lstdc++
+endif
+
+$(LOCAL_TARGET): $(LOCAL_DEP_OBJECTS)
+	@echo "include common source files: $(COMMON_SRC_FILES)"
+	@echo "depends: $(LOCAL_DEP_OBJECTS)"
+	@echo "making $(LOCAL_TARGET)"
+	$(Q)$(CC) $(CFLAGS) -o $(LOCAL_DIR)/$(LOCAL_TARGET) $^ $(LDFLAGS)
+
+# C 文件
+%.o: %.c $(PRE_BUILD_TARGET)
+	@echo "compiling $<"
+	$(Q)$(CC) $(CFLAGS) -c $< -o $@
+
+# C++ 文件
+%.o: %.cpp $(PRE_BUILD_TARGET)
+	@echo "compiling $<"
+	$(Q)$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# 汇编文件
+%.o: %.S $(PRE_BUILD_TARGET)
+	@echo "assembling $<"
+	$(Q)$(CC) $(ASFLAGS) -c $< -o $@
+
+$(PRE_BUILD_TARGET):
+	@if [ ! -d $(RESOURCE_TARGET_DIR) ]; then \
+		@echo "Directory $(RESOURCE_TARGET_DIR) does not exist. Creating..."; \
+		mkdir -p $(RESOURCE_TARGET_DIR); \
+	fi
+	touch $(PRE_BUILD_TARGET)
+
+.PHONY: clean dis
+clean:
+	rm -f $(LOCAL_DIR)/$(LOCAL_TARGET) $(LOCAL_DEP_OBJECTS) $(PRE_BUILD_TARGET)
+
+dis:
+	$(OBJDUMP) -D $(LOCAL_TARGET) > $(LOCAL_TARGET).dis
+

@@ -7,6 +7,14 @@
 #include <stdint.h>
 #include "log_util.h"
 
+#ifdef ENABLE_ASAN
+// 硬编码 ASan 选项（仅在 ASAN=1 时生效）
+static __attribute__((used))
+const char *__asan_default_options() {
+    return "detect_leaks=1";  // 可添加其他选项
+}
+#endif
+
 //=====================type define begin=====================
 #define COLOR_T int
 #define angle_t double
@@ -81,6 +89,8 @@ void str2hex_print(void *ptr, size_t bytes);
 int shell_cmd_excute(const char *cmd, char *result, int len);
 int read_file_string(const char *path, char *buf, size_t len);
 int write_file_string(const char *path, char *buf, size_t len);
+int fill_random_value(int nums[], int max, int min, int size);
+void print_int_array(int num[], int size);
 //=====================func define end=======================
 
 #endif // COMMON_UTIL_H
