@@ -93,4 +93,21 @@ int fill_random_value(int nums[], int max, int min, int size);
 void print_int_array(int num[], int size);
 //=====================func define end=======================
 
+
+/*=============================inline func begin===================================*/
+static inline void binary_print(void *buf, int num_bytes)
+{
+    int i = 0, j = 0;
+    char *tmp = (char *)buf;
+
+    printf("binary format(LSB): ");
+    for (i = 0; i < num_bytes; i++) {
+        for (j = 7; j >= 0; j--)
+            printf("%d", (tmp[i] & (1 << j)) ? 1: 0);
+        printf(" ");
+    }
+    printf("\n"); 
+}
+/*=============================inline func end===================================*/
+
 #endif // COMMON_UTIL_H

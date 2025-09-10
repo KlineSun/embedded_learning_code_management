@@ -28,10 +28,10 @@ CFLAGS += $(foreach dir,$(COMMON_INCLUE_PATH),-I $(dir))
 COMMON_SRC_FILES := $(shell find $(MY_PROJECT_ROOT)/common -name '*.c')
 COMMON_DEP_OBJS  := $(patsubst %.c,%.o,$(COMMON_SRC_FILES))
 # 链接标志
-LDFLAGS := -lm
+LDFLAGS :=
 
 # 汇编标志
-ASFLAGS := 
+ASFLAGS :=
 
 RESOURCE_TARGET_DIR := ~/resource
 RESOURCE_SOUCE_FILES := $(MY_PROJECT_ROOT)/res/*

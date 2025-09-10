@@ -30,6 +30,7 @@ endif
 
 ifneq ($(filter %.cpp,$(LOCAL_C_SRC)), )
 	LDFLAGS += -lstdc++
+	CXXFLAGS += -std=c++1z
 endif
 
 $(LOCAL_TARGET): $(LOCAL_DEP_OBJECTS)

@@ -3,7 +3,7 @@
 include $(MY_PROJECT_ROOT)/build/func.mk
 
 LOCAL_DIR := $(shell pwd)
-LOCAL_TARGET := quick_practice
+LOCAL_TARGET := cpp_quick_practice
 # LOCAL_BUILD_TYPE := ARM_BUILD
 CFLAGS += -lm
 
